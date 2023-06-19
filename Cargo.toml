@@ -1,0 +1,20 @@
+[package]
+name = "tolerance"
+description = "Rust datatype for the representation of the tolerance of measured quantities."
+repository = "https://github.com/NORICS-net/tolerance"
+version = "1.0.0"
+authors = ["Micha Glave <coding@migmedia.de>"]
+edition = "2021"
+license = "MIT"
+readme = "README.md"
+
+[features]
+serde = [ "dep:serde" ]
+
+[lib]
+
+[dependencies]
+serde = { version = "1.0", features = [ "derive" ], optional = true }
+
+[dev-dependencies]
+serde_test = { version = "1.0" }
