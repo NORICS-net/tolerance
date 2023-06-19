@@ -54,12 +54,12 @@ impl Myth64 {
 
     #[inline]
     pub fn as_mm(&self) -> f64 {
-        (self.0 as f64) / Unit::MM.multiply() as f64
+        f64::from(self.0) / Unit::MM.multiply() as f64
     }
 
     /// Returns the value in the given `Unit`.
-    pub fn as_prec(&self, unit: Unit) -> f64 {
-        (self.0 as f64) / unit.multiply() as f64
+    pub fn as_unit(&self, unit: Unit) -> f64 {
+        f64::from(self.0 ) / unit.multiply() as f64
     }
 
     /// Rounds to the given Unit.
@@ -89,7 +89,7 @@ macro_rules! measure_from_number {
         $(
             impl From<$typ> for Myth64 {
                 fn from(a: $typ) -> Self {
-                    Self(a as i64)
+                    Self(i64::from(a))
                 }
             }
 
@@ -386,12 +386,12 @@ mod should {
     }
 
     #[test]
-    fn as_prec() {
+    fn as_unit() {
         let m = Myth64::from(12456.832);
-        assert_eq!(m.as_prec(Unit::CM), 1245.6832);
-        assert_eq!(m.as_prec(Unit::METER), 12.456_832);
+        assert_eq!(m.as_unit(Unit::CM), 1245.6832);
+        assert_eq!(m.as_unit(Unit::METER), 12.456_832);
         let m = Myth64::MAX;
-        assert_eq!(m.as_prec(Unit::KM), 922_337_203.685_477_6);
+        assert_eq!(m.as_unit(Unit::KM), 922_337_203.685_477_6);
     }
 
     #[cfg(feature = "serde")]

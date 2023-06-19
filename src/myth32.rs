@@ -62,7 +62,7 @@ impl Myth32 {
     }
 
     /// Returns the value in the given `Unit`.
-    pub fn as_prec(&self, unit: Unit) -> f64 {
+    pub fn as_unit(&self, unit: Unit) -> f64 {
         f64::from(self.0) / unit.multiply() as f64
     }
 
@@ -398,9 +398,9 @@ mod should {
     }
 
     #[test]
-    fn as_prec() {
+    fn as_unit() {
         let m = Myth32::from(12456.832);
-        assert_eq!(m.as_prec(Unit::CM), 1245.6832);
-        assert_eq!(m.as_prec(Unit::METER), 12.456_832);
+        assert_eq!(m.as_unit(Unit::CM), 1245.6832);
+        assert_eq!(m.as_unit(Unit::METER), 12.456_832);
     }
 }

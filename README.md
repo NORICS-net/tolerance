@@ -1,11 +1,12 @@
 # Tolerance 
 
-Math representation of the physically needed permissible deviation of measures in rust avoiding floating point 
-inaccuracy.  
+Math representation of the physically needed permissible deviation of measures in Rust
+avoiding floating point inaccuracy. Allows to calculate with tolerance ranges in a consistent way.
 
 Based of an own type `Myth` with a accuracy of 1/10th my-meter (= 0.1μ).
 
 ### Example
+
 ```rust
 use tolerance::T128;
 
@@ -13,7 +14,7 @@ fn main() {
     let width1 = T128::new(100.0, 0.05, -0.2);
     let width2 = T128::with_sym(50.0, 0.05);
 
-    // Adding two `T128`s is strait-forth.
+    // Adding two `T128`s is straightforward.
     assert_eq!(width1 + width2, T128::new(150.0, 0.1, -0.25));
 
     // `!` inverts the direction of tolerance to /subtract/ measures.

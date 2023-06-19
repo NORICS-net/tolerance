@@ -65,7 +65,7 @@ impl Myth16 {
     }
 
     /// Returns the value in the given `Unit`.
-    pub fn as_prec(&self, unit: Unit) -> f64 {
+    pub fn as_unit(&self, unit: Unit) -> f64 {
         f64::from(self.0) / unit.multiply() as f64
     }
 
@@ -367,8 +367,8 @@ mod should {
 
     #[test]
     fn cmp() {
-        let s1 = Myth16(20000);
-        let i1 = Myth16(19000);
+        let s1 = Myth16(20_000);
+        let i1 = Myth16(19_000);
         let s2 = Myth16::from(2.0);
         let i2 = Myth16::from(1.9);
 
@@ -444,9 +444,9 @@ mod should {
     }
 
     #[test]
-    fn as_prec() {
+    fn as_unit() {
         let m = Myth16::from(0.832);
-        assert_eq!(m.as_prec(Unit::CM), 0.0832);
-        assert_eq!(m.as_prec(Unit::MY), 832.0);
+        assert_eq!(m.as_unit(Unit::CM), 0.0832);
+        assert_eq!(m.as_unit(Unit::MY), 832.0);
     }
 }
