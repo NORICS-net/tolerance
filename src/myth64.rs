@@ -54,12 +54,12 @@ impl Myth64 {
 
     #[inline]
     pub fn as_mm(&self) -> f64 {
-        f64::from(self.0) / Unit::MM.multiply() as f64
+        (self.0 as f64) / Unit::MM.multiply() as f64
     }
 
     /// Returns the value in the given `Unit`.
     pub fn as_unit(&self, unit: Unit) -> f64 {
-        f64::from(self.0 ) / unit.multiply() as f64
+        (self.0 as f64) / unit.multiply() as f64
     }
 
     /// Rounds to the given Unit.
@@ -89,7 +89,7 @@ macro_rules! measure_from_number {
         $(
             impl From<$typ> for Myth64 {
                 fn from(a: $typ) -> Self {
-                    Self(i64::from(a))
+                    Self(a as i64)
                 }
             }
 
