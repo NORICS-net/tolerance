@@ -22,13 +22,14 @@ use crate::{error, Myth32, Myth64};
 /// let width = T128::new(100.0, 0.05, -0.2);
 ///
 /// assert_eq!(format!("{width}"), "100.00 +0.050/-0.200");
-/// assert_eq!(format!("{width:?}"), "AV(100.0000 +0.0500 -0.2000)");
+/// assert_eq!(format!("{width:?}"), "T128(100.0000 +0.0500 -0.2000)");
 /// ```
 ///
 /// The `plus` and `minus` tolerances are in the same scale unit as the `value`.
 /// `plus` is signed positiv (`+`) and `minus` is signed negative (`-`).
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
+#[must_use]
 pub struct T128 {
     pub value: Myth64,
     pub plus: Myth32,
@@ -96,6 +97,7 @@ impl T128 {
 
     /// returns `true`, if `this` tolerance is more narrow than the `other`.
     ///
+    #[must_use]
     pub fn is_inside_of(&self, other: Self) -> bool {
         self.lower_limit() >= other.lower_limit() && self.upper_limit() <= other.upper_limit()
     }
@@ -240,11 +242,11 @@ impl std::fmt::Display for T128 {
 
 impl Debug for T128 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "AV({} +{} -{})", self.value, self.plus, -self.minus)
+        write!(f, "T128({} +{} -{})", self.value, self.plus, -self.minus)
     }
 }
 
-/// A maybe harmful conversation. Ignores all possible allowance.
+/// A maybe harmful conversation. Ignores all possible tolerance.
 /// Returns a f64 representing a mm value.    
 impl From<T128> for f64 {
     fn from(v: T128) -> Self {
@@ -290,23 +292,7 @@ impl From<T128> for (f64, f64, f64) {
     }
 }
 
-macro_rules! multiply_all {
-    ($($typ:ty),+) => {
-
-        $(impl Mul<$typ> for T128 {
-            type Output = Self;
-            fn mul(self, rsh: $typ) -> Self {
-                T128 {
-                    value: self.value * rsh,
-                    plus: self.plus * rsh,
-                    minus: self.minus * rsh,
-                }
-            }
-        })+
-    };
-}
-
-multiply_all!(u64, u32, i64, i32);
+super::multiply_all!(T128, u64, u32, i64, i32);
 
 impl<V, P, M> TryFrom<(Option<V>, Option<P>, Option<M>)> for T128
 where
@@ -346,8 +332,7 @@ impl TryFrom<&str> for T128 {
     type Error = error::ToleranceError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        let f = value.parse::<f64>()?;
-        Ok(T128::from(f))
+        Ok(Self::from(super::try_from_str(value.trim())?))
     }
 }
 
@@ -355,8 +340,7 @@ impl TryFrom<String> for T128 {
     type Error = error::ToleranceError;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
-        let f = value.parse::<f64>()?;
-        Ok(T128::from(f))
+        Ok(Self::from(super::try_from_str(value.trim())?))
     }
 }
 
@@ -376,7 +360,7 @@ mod should {
     use std::convert::TryFrom;
 
     #[test]
-    fn prove_allowance_is_inside_of() {
+    fn prove_tolerance_is_inside_of() {
         let o = T128::new(2_000, 5, -10);
 
         assert!(!o.is_inside_of(T128::with_sym(2_000, 5)));
@@ -386,7 +370,7 @@ mod should {
     }
 
     #[test]
-    fn prove_allowance_is_partial_ord() {
+    fn prove_tolerance_is_partial_ord() {
         let o = T128::new(2_000, 5, -10);
 
         assert!(o < T128::new(2_000, 5, -5));
@@ -425,7 +409,7 @@ mod should {
 
         assert_eq!(
             format!("{o:.3?}"),
-            String::from("AV(-0.3500 +0.0100 -0.0140)")
+            String::from("T128(-0.3500 +0.0100 -0.0140)")
         );
     }
 
@@ -455,19 +439,18 @@ mod should {
 
     #[test]
     fn error() {
-        use ToleranceError::ParseError;
-        let a = T128::try_from("nil");
-        assert!(a.is_err(), "T128 ");
+        let tol = T128::try_from("nil");
+        assert!(tol.is_err(), "T128 ");
         assert_eq!(
-            a.unwrap_err(),
-            ParseError(String::from("invalid allowance literal"))
+            tol,
+            ToleranceError::parse_err("cannot parse Tolerance found non-numerical literal")
         );
 
-        let a = T128::try_from("");
-        assert!(a.is_err(), "T128 ");
+        let tol = T128::try_from("");
+        assert!(tol.is_err(), "T128 ");
         assert_eq!(
-            a.unwrap_err(),
-            ParseError(String::from("cannot parse allowance from empty string"))
+            tol,
+            ToleranceError::parse_err("cannot parse Tolerance from empty string")
         );
     }
 

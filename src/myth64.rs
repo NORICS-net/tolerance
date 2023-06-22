@@ -1,11 +1,9 @@
-use super::Myth32;
-use super::Unit;
+use super::{error::ToleranceError, Myth16, Myth32, Unit};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::convert::TryFrom;
 use std::fmt::{Debug, Display, Formatter};
-use std::num::ParseFloatError;
 use std::ops::{Add, AddAssign, Deref, Div, Mul, Neg, Sub, SubAssign};
 
 ///
@@ -37,6 +35,7 @@ use std::ops::{Add, AddAssign, Deref, Div, Mul, Neg, Sub, SubAssign};
 
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[must_use]
 pub struct Myth64(i64);
 
 impl Myth64 {
@@ -48,270 +47,55 @@ impl Myth64 {
     /// Holds at MIN -922 337 203 km
     pub const MIN: Myth64 = Myth64(i64::MIN);
 
+    #[must_use]
     pub fn as_i64(&self) -> i64 {
         self.0
     }
-
-    #[inline]
-    pub fn as_mm(&self) -> f64 {
-        (self.0 as f64) / Unit::MM.multiply() as f64
-    }
-
-    /// Returns the value in the given `Unit`.
-    pub fn as_unit(&self, unit: Unit) -> f64 {
-        (self.0 as f64) / unit.multiply() as f64
-    }
-
-    /// Rounds to the given Unit.
-    pub fn round(&self, unit: Unit) -> Self {
-        if unit.multiply() == 0 {
-            return *self;
-        }
-        let m = unit.multiply();
-        let clip = self.0 % m;
-        match m / 2 {
-            _ if clip == 0 => *self, // don't round
-            x if clip <= -x => Myth64(self.0 - clip - m),
-            x if clip >= x => Myth64(self.0 - clip + m),
-            _ => Myth64(self.0 - clip),
-        }
-    }
-
-    pub fn floor(&self, unit: Unit) -> Self {
-        let val = self.0;
-        let clip = val % unit.multiply();
-        Myth64(val - clip)
-    }
 }
 
-macro_rules! measure_from_number {
-    ($($typ:ident),+) => {
-        $(
-            impl From<$typ> for Myth64 {
-                fn from(a: $typ) -> Self {
-                    Self(a as i64)
-                }
-            }
-
-            impl From<Myth64> for $typ {
-                fn from(a: Myth64) -> Self {
-                    a.0 as $typ
-                }
-            }
-
-            impl Add<$typ> for Myth64 {
-                type Output = Myth64;
-
-                fn add(self, rhs: $typ) -> Self::Output {
-                    Self(self.0 + (rhs as i64))
-                }
-            }
-
-            impl AddAssign<$typ> for Myth64 {
-                fn add_assign(&mut self, rhs: $typ) {
-                    self.0 += (rhs as i64);
-                }
-            }
-
-            impl Sub<$typ> for Myth64 {
-                type Output = Myth64;
-
-                fn sub(self, rhs: $typ) -> Self::Output {
-                    Self(self.0 - (rhs as i64))
-                }
-            }
-
-            impl Mul<$typ> for Myth64 {
-                type Output = Myth64;
-
-                fn mul(self, rhs: $typ) -> Self::Output {
-                    Self(self.0 * (rhs as i64))
-                }
-            }
-
-            impl Div<$typ> for Myth64 {
-                type Output = Myth64;
-
-                fn div(self, rhs: $typ) -> Self::Output {
-                    Self(self.0 / (rhs as i64))
-                }
-            }
-        )+
-    }
-}
-
-measure_from_number!(u64, u32, u16, u8, usize, i64, i32, i16, i8, isize);
-
-impl From<Unit> for Myth64 {
-    fn from(unit: Unit) -> Self {
-        Myth64::from(unit.multiply())
-    }
-}
-
-impl From<f64> for Myth64 {
-    fn from(f: f64) -> Self {
-        assert!(
-            f < i64::MAX as f64 && f > i64::MIN as f64,
-            "i64 overflow, the f64 is beyond the limits of this type (Myth64)."
-        );
-        Self((f * Myth64::MM.as_i64() as f64) as i64)
-    }
-}
-
-impl From<Myth64> for f64 {
-    fn from(f: Myth64) -> Self {
-        f.0 as f64 / Myth64::MM.as_i64() as f64
-    }
-}
+super::math_number!(Myth64, i64, u64, u32, u16, u8, usize, i64, i32, i16, i8, isize);
+super::from_number!(Myth64, u32, u16, u8, i64, i32, i16, i8);
+super::try_from_number!(Myth64, u64, usize, isize);
 
 impl TryFrom<&str> for Myth64 {
-    type Error = ParseFloatError;
+    type Error = ToleranceError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        Ok(Myth64::from(value.parse::<f64>()?))
+        super::try_from_str(value.trim()).map(Self::from)
     }
 }
 
 impl TryFrom<String> for Myth64 {
-    type Error = ParseFloatError;
+    type Error = ToleranceError;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
-        Ok(Myth64::from(value.parse::<f64>()?))
-    }
-}
-
-impl Display for Myth64 {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let p = f.precision().map_or(4, |p| p.min(4));
-        assert!(p <= 4, "Myth64 has a limited precision of 4!");
-        if f.alternate() {
-            Display::fmt(&self.0, f)
-        } else {
-            let val = self.round(Unit::DYN(4 - p)).0;
-            let l = if val.is_negative() { 6 } else { 5 };
-            let mut s = format!("{val:0l$}");
-            if p > 0 {
-                s.insert(s.len() - 4, '.');
-            }
-            s.truncate(s.len() - (4 - p));
-            write!(f, "{s}")
-        }
-    }
-}
-
-impl Debug for Myth64 {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let val = self.0;
-        let n = if val.is_negative() { 6 } else { 5 };
-        let mut m = format!("{val:0n$}");
-        m.insert(m.len() - 4, '.');
-        write!(f, "Myth64({m})")
-    }
-}
-
-impl Neg for Myth64 {
-    type Output = Myth64;
-
-    fn neg(self) -> Self::Output {
-        Self(-self.0)
-    }
-}
-
-impl Add for Myth64 {
-    type Output = Myth64;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        Self(self.0 + rhs.0)
-    }
-}
-
-impl Add<Myth32> for Myth64 {
-    type Output = Myth64;
-
-    fn add(self, rhs: Myth32) -> Self::Output {
-        Self(self.0 + i64::from(rhs.as_i32()))
-    }
-}
-
-impl AddAssign for Myth64 {
-    fn add_assign(&mut self, rhs: Self) {
-        self.0 += rhs.0;
-    }
-}
-
-impl AddAssign<Myth32> for Myth64 {
-    fn add_assign(&mut self, rhs: Myth32) {
-        self.0 += i64::from(rhs.as_i32());
-    }
-}
-
-impl Sub for Myth64 {
-    type Output = Myth64;
-
-    fn sub(self, rhs: Self) -> Self::Output {
-        Self(self.0 - rhs.0)
-    }
-}
-
-impl Sub<Myth32> for Myth64 {
-    type Output = Myth64;
-
-    fn sub(self, rhs: Myth32) -> Self::Output {
-        Self(self.0 - i64::from(rhs.as_i32()))
-    }
-}
-
-impl SubAssign for Myth64 {
-    fn sub_assign(&mut self, rhs: Self) {
-        self.0 -= rhs.0;
-    }
-}
-
-impl SubAssign<Myth32> for Myth64 {
-    fn sub_assign(&mut self, rhs: Myth32) {
-        self.0 -= i64::from(rhs.as_i32());
-    }
-}
-
-impl Mul for Myth64 {
-    type Output = Myth64;
-
-    fn mul(self, rhs: Self) -> Self::Output {
-        Self(self.0 * rhs.0)
-    }
-}
-
-impl Div for Myth64 {
-    type Output = Myth64;
-
-    fn div(self, rhs: Self) -> Self::Output {
-        Self(self.0 / rhs.0)
-    }
-}
-
-impl Deref for Myth64 {
-    type Target = i64;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl PartialOrd for Myth64 {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.0.partial_cmp(&other.0)
-    }
-}
-
-impl Ord for Myth64 {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.0.cmp(&other.0)
+        super::try_from_str(value.trim()).map(Self::from)
     }
 }
 
 #[cfg(test)]
 mod should {
     use super::{Myth64, Ordering, Unit};
+
+    #[test]
+    fn try_from_str() {
+        let d = Myth64::try_from("12345.12343").unwrap();
+        assert_eq!(d, Myth64(1_234_512_34));
+        let d = Myth64::try_from("6.02").unwrap();
+        assert_eq!(d, Myth64(60_200));
+        let d = Myth64::try_from("18").unwrap();
+        assert_eq!(d, Myth64(180_000));
+        let d = Myth64::try_from("0").unwrap();
+        assert_eq!(d, Myth64(0));
+
+        let d = Myth64::try_from(" +2.07").unwrap();
+        assert_eq!(d, Myth64(20_700));
+        let d = Myth64::try_from("-3.01").unwrap();
+        assert_eq!(d, Myth64(-30_100));
+
+        let d = Myth64::try_from("-12345.12343").unwrap();
+        assert_eq!(d, -Myth64(1_234_512_34));
+    }
 
     #[test]
     fn cmp() {

@@ -1,10 +1,9 @@
-use crate::{Myth32, Myth64, Unit};
+use crate::{error::ToleranceError, Myth32, Myth64, Unit};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::convert::TryFrom;
 use std::fmt::{Debug, Display, Formatter};
-use std::num::{ParseFloatError, TryFromIntError};
 use std::ops::{Add, AddAssign, Deref, Div, Mul, Neg, Sub, SubAssign};
 
 ///
@@ -44,6 +43,7 @@ use std::ops::{Add, AddAssign, Deref, Div, Mul, Neg, Sub, SubAssign};
 
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[must_use]
 pub struct Myth16(i16);
 
 impl Myth16 {
@@ -55,315 +55,55 @@ impl Myth16 {
     /// Holds at minimum -3mm
     pub const MIN: Myth16 = Myth16(i16::MIN);
 
+    #[must_use]
     pub fn as_i16(&self) -> i16 {
         self.0
     }
-
-    #[inline]
-    pub fn as_mm(&self) -> f64 {
-        f64::from(self.0) / Unit::MM.multiply() as f64
-    }
-
-    /// Returns the value in the given `Unit`.
-    pub fn as_unit(&self, unit: Unit) -> f64 {
-        f64::from(self.0) / unit.multiply() as f64
-    }
-
-    /// Rounds to the given Unit.
-    pub fn round(&self, unit: Unit) -> Self {
-        if unit.multiply() == 0 {
-            return *self;
-        }
-        let m = unit.multiply() as i32;
-        let clip = i32::from(self.0 % m as i16);
-        match m / 2 {
-            _ if clip == 0 => *self, // don't round
-            x if clip <= -x => Myth16::from(i32::from(self.0) - clip - m),
-            x if clip >= x => Myth16::from(i32::from(self.0) - clip + m),
-            _ => Myth16(self.0 - clip as i16),
-        }
-    }
-
-    pub fn floor(&self, unit: Unit) -> Self {
-        let val = self.0;
-        let clip = val % unit.multiply() as i16;
-        Myth16(val - clip)
-    }
 }
 
-macro_rules! myth16_from_number {
-    ($($typ:ident),+) => {
-        $(
-            impl From<$typ> for Myth16 {
-                fn from(a: $typ) -> Self {
-                    assert!(a < i16::MAX as $typ && a > i16::MIN as $typ);
-                    Self(a as i16)
-                }
-            }
+super::math_number!(Myth16, i16, u64, u32, u16, u8, usize, i64, i32, i16, i8, isize);
+super::from_number!(Myth16, u8, i16, i8);
+super::try_from_number!(Myth16, u64, u32, u16, i64, isize, usize);
 
-            impl From<Myth16> for $typ {
-                fn from(a: Myth16) -> Self {
-                    a.0 as $typ
-                }
-            }
-
-            impl Add<$typ> for Myth16 {
-                type Output = Myth16;
-
-                fn add(self, rhs: $typ) -> Self::Output {
-                    Self(self.0 + (rhs as i16))
-                }
-            }
-
-            impl AddAssign<$typ> for Myth16 {
-                fn add_assign(&mut self, rhs: $typ) {
-                    self.0 += (rhs as i16);
-                }
-            }
-
-            impl Sub<$typ> for Myth16 {
-                type Output = Myth16;
-
-                fn sub(self, rhs: $typ) -> Self::Output {
-                    Self(self.0 - (rhs as i16))
-                }
-            }
-
-            impl Mul<$typ> for Myth16 {
-                type Output = Myth16;
-
-                fn mul(self, rhs: $typ) -> Self::Output {
-                    Self(self.0 * (rhs as i16))
-                }
-            }
-
-            impl Div<$typ> for Myth16 {
-                type Output = Myth16;
-
-                fn div(self, rhs: $typ) -> Self::Output {
-                    Self(self.0 / (rhs as i16))
-                }
-            }
-        )+
-    }
-}
-
-myth16_from_number!(u64, u32, u16, u8, usize, i64, i32, i16, i8);
-
-impl From<Unit> for Myth16 {
-    fn from(unit: Unit) -> Self {
-        Myth16::from(unit.multiply())
-    }
-}
-
-impl From<f64> for Myth16 {
-    fn from(f: f64) -> Self {
-        assert!(
-            f < f64::from(i16::MAX) && f > f64::from(i16::MIN),
-            "i16 overflow, the f64 is beyond the limits of this type (Myth16)."
-        );
-        Self((f * f64::from(Myth16::MM.as_i16())) as i16)
-    }
-}
-
-impl From<Myth16> for f64 {
-    fn from(f: Myth16) -> Self {
-        f64::from(f.0) / f64::from(Myth16::MM.as_i16())
-    }
-}
-
-// Upcasting is no problem!
-impl From<Myth16> for Myth64 {
-    fn from(m: Myth16) -> Self {
-        Myth64::from(m.0)
-    }
-}
-
-// Upcasting is no problem!
-impl From<Myth16> for Myth32 {
-    fn from(m: Myth16) -> Self {
-        Myth32::from(m.0)
+///  a potentially dangerous function.
+impl From<i32> for Myth16 {
+    fn from(value: i32) -> Self {
+        Self(value as i16)
     }
 }
 
 impl TryFrom<&str> for Myth16 {
-    type Error = ParseFloatError;
+    type Error = ToleranceError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        Ok(Myth16::from(value.parse::<f64>()?))
+        Self::try_from(super::try_from_str(value.trim())?)
     }
 }
 
 impl TryFrom<String> for Myth16 {
-    type Error = ParseFloatError;
+    type Error = ToleranceError;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
-        Ok(Myth16::from(value.parse::<f64>()?))
-    }
-}
-
-impl TryFrom<Myth64> for Myth16 {
-    type Error = TryFromIntError;
-
-    fn try_from(value: Myth64) -> Result<Self, Self::Error> {
-        let v: i16 = value.as_i64().try_into()?;
-        Ok(Myth16(v))
-    }
-}
-
-impl TryFrom<Myth32> for Myth16 {
-    type Error = TryFromIntError;
-
-    fn try_from(value: Myth32) -> Result<Self, Self::Error> {
-        let v: i16 = value.as_i32().try_into()?;
-        Ok(Myth16(v))
-    }
-}
-
-impl Display for Myth16 {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let p = f.precision().map_or(4, |p| p.min(4));
-        assert!(p <= 4, "Myth64 has a limited precision of 4!");
-        if f.alternate() {
-            Display::fmt(&self.0, f)
-        } else {
-            let val = self.round(Unit::DYN(4 - p)).0;
-            let n = if val.is_negative() { 6 } else { 5 };
-            let mut s = format!("{val:0n$}");
-            if p > 0 {
-                s.insert(s.len() - 4, '.');
-            }
-            s.truncate(s.len() - (4 - p));
-            write!(f, "{s}")
-        }
-    }
-}
-
-impl Debug for Myth16 {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let val = self.0;
-        let n = if val.is_negative() { 6 } else { 5 };
-        let mut m = format!("{val:0n$}");
-        m.insert(m.len() - 4, '.');
-        write!(f, "Myth16({m})")
-    }
-}
-
-impl Neg for Myth16 {
-    type Output = Myth16;
-
-    fn neg(self) -> Self::Output {
-        Self(-self.0)
-    }
-}
-
-impl Add for Myth16 {
-    type Output = Myth16;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        Self(self.0 + rhs.0)
-    }
-}
-
-impl Add<Myth64> for Myth16 {
-    type Output = Myth64;
-
-    fn add(self, rhs: Myth64) -> Self::Output {
-        Myth64::from(rhs.as_i64() + i64::from(self.as_i16()))
-    }
-}
-
-impl Add<Myth32> for Myth16 {
-    type Output = Myth32;
-
-    fn add(self, rhs: Myth32) -> Self::Output {
-        Myth32::from(rhs.as_i32() + i32::from(self.as_i16()))
-    }
-}
-
-impl Add<Myth16> for Myth32 {
-    type Output = Myth32;
-
-    fn add(self, rhs: Myth16) -> Self::Output {
-        Myth32::from(i32::from(rhs.as_i16()) + self.as_i32())
-    }
-}
-
-impl AddAssign for Myth16 {
-    fn add_assign(&mut self, rhs: Self) {
-        self.0 += rhs.0;
-    }
-}
-
-impl Sub for Myth16 {
-    type Output = Myth16;
-
-    fn sub(self, rhs: Self) -> Self::Output {
-        Self(self.0 - rhs.0)
-    }
-}
-
-impl Sub<Myth32> for Myth16 {
-    type Output = Myth32;
-
-    fn sub(self, rhs: Myth32) -> Self::Output {
-        Myth32::from(i32::from(self.0) - rhs.as_i32())
-    }
-}
-
-impl Sub<Myth64> for Myth16 {
-    type Output = Myth64;
-
-    fn sub(self, rhs: Myth64) -> Self::Output {
-        Myth64::from(i64::from(self.0) - rhs.as_i64())
-    }
-}
-
-impl SubAssign for Myth16 {
-    fn sub_assign(&mut self, rhs: Self) {
-        self.0 -= rhs.0;
-    }
-}
-
-impl Mul for Myth16 {
-    type Output = Myth16;
-
-    fn mul(self, rhs: Self) -> Self::Output {
-        Self(self.0 * rhs.0)
-    }
-}
-
-impl Div for Myth16 {
-    type Output = Myth16;
-
-    fn div(self, rhs: Self) -> Self::Output {
-        Self(self.0 / rhs.0)
-    }
-}
-
-impl Deref for Myth16 {
-    type Target = i16;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl PartialOrd for Myth16 {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.0.partial_cmp(&other.0)
-    }
-}
-
-impl Ord for Myth16 {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.0.cmp(&other.0)
+        Self::try_from(super::try_from_str(value.trim())?)
     }
 }
 
 #[cfg(test)]
 mod should {
     use super::{Myth16, Ordering, Unit};
+
+    #[test]
+    fn try_from_str() {
+        let d = Myth16::try_from("2.1234").unwrap();
+        assert_eq!(d, Myth16(21_234));
+        let d = Myth16::try_from("3.01").unwrap();
+        assert_eq!(d, Myth16(30_100));
+
+        let d = Myth16::try_from(" +2.07").unwrap();
+        assert_eq!(d, Myth16(20_700));
+        let d = Myth16::try_from("-3.01").unwrap();
+        assert_eq!(d, Myth16(-30_100));
+    }
 
     #[test]
     fn cmp() {
@@ -402,7 +142,7 @@ mod should {
         assert_eq!(Myth16(10_000), Myth16(9_000).round(Unit::MM));
         assert_eq!(Myth16(0), Myth16::from(-0.4993).round(Unit::MM));
         assert_eq!(Myth16(-4990), Myth16::from(-0.4993).round(Unit::MY));
-        assert_eq!(Myth16(-10000), Myth16::from(-5000).round(Unit::MM));
+        assert_eq!(Myth16(-10000), Myth16::from(-5000i16).round(Unit::MM));
         let m = Myth16::from(2.993);
         assert_eq!(10, Unit::DYN(1).multiply());
         assert_eq!(Myth16(29930), m.round(Unit::DYN(1)));

@@ -27,8 +27,9 @@ pub enum Unit {
 
 impl Unit {
     #[inline]
+    #[must_use]
     pub fn multiply(&self) -> i64 {
-        use Unit::*;
+        use Unit::{CM, DYN, FT, INCH, KM, METER, MILE, MM, MY, YD};
         match self {
             MY => Myth64::MY,
             MM => Myth64::MY * 1_000,
