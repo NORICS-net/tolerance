@@ -4,12 +4,12 @@ use std::cmp::Ordering;
 use std::convert::TryFrom;
 use std::fmt::Debug;
 use std::iter::Sum;
-use std::ops::{Add, AddAssign, Mul, Not, Sub};
+use std::ops::{Add, AddAssign, Mul, Neg, Not, Sub};
 
 use crate::error::ToleranceError::ParseError;
 use crate::{error, Myth16, Myth32};
 
-/// # `T64`
+/// # The 64bit tolerance-type
 ///
 /// A 64bit wide type to hold values with a tolerance. Using [Myth32](./struct.Myth32.html) as
 /// `value` and [Myth16](./struct.Myth16.html) as `plus` and `minus`. Comes with helper methods to
@@ -129,6 +129,14 @@ impl Not for T64 {
 
     fn not(self) -> Self::Output {
         self.invert()
+    }
+}
+
+impl Neg for T64 {
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        Self::new(-self.value, -self.plus, -self.minus)
     }
 }
 
@@ -292,7 +300,7 @@ impl From<T64> for (f64, f64, f64) {
     }
 }
 
-super::multiply_all!(T64, u64, u32, i64, i32);
+super::multiply_tolerance!(T64, u64, u32, i64, i32);
 
 impl<V, P, M> TryFrom<(Option<V>, Option<P>, Option<M>)> for T64
 where
@@ -436,7 +444,7 @@ mod should {
         assert_eq!(
             a.unwrap_err(),
             ParseError(String::from(
-                "cannot parse Tolerance found non-numerical literal"
+                "Cannot parse Tolerance found non-numerical literal"
             ))
         );
 
@@ -444,7 +452,7 @@ mod should {
         assert!(a.is_err(), "T64 ");
         assert_eq!(
             a.unwrap_err(),
-            ParseError(String::from("cannot parse Tolerance from empty string"))
+            ParseError(String::from("Cannot parse Tolerance from empty string"))
         );
     }
 }

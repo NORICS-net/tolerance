@@ -1,10 +1,9 @@
 use super::{error::ToleranceError, Myth16, Myth32, Unit};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use std::cmp::Ordering;
 use std::convert::TryFrom;
 use std::fmt::{Debug, Display, Formatter};
-use std::ops::{Add, AddAssign, Deref, Div, Mul, Neg, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign};
 
 ///
 /// # Myth64
@@ -34,7 +33,7 @@ use std::ops::{Add, AddAssign, Deref, Div, Mul, Neg, Sub, SubAssign};
 ///
 
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Default, PartialOrd, Ord)]
 #[must_use]
 pub struct Myth64(i64);
 
@@ -46,14 +45,9 @@ impl Myth64 {
     pub const MAX: Myth64 = Myth64(i64::MAX);
     /// Holds at MIN -922 337 203 km
     pub const MIN: Myth64 = Myth64(i64::MIN);
-
-    #[must_use]
-    pub fn as_i64(&self) -> i64 {
-        self.0
-    }
 }
 
-super::math_number!(Myth64, i64, u64, u32, u16, u8, usize, i64, i32, i16, i8, isize);
+super::standard_myths!(Myth64, i64, u64, u32, u16, u8, usize, i64, i32, i16, i8, isize);
 super::from_number!(Myth64, u32, u16, u8, i64, i32, i16, i8);
 super::try_from_number!(Myth64, u64, usize, isize);
 
@@ -73,9 +67,17 @@ impl TryFrom<String> for Myth64 {
     }
 }
 
+impl std::str::FromStr for Myth64 {
+    type Err = ToleranceError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        super::try_from_str(s.trim()).map(Self::from)
+    }
+}
+
 #[cfg(test)]
 mod should {
-    use super::{Myth64, Ordering, Unit};
+    use super::{Myth64, Unit};
 
     #[test]
     fn try_from_str() {
@@ -87,6 +89,8 @@ mod should {
         assert_eq!(d, Myth64(180_000));
         let d = Myth64::try_from("0").unwrap();
         assert_eq!(d, Myth64(0));
+        let d = Myth64::try_from("14.9300").unwrap();
+        assert_eq!(d, Myth64(149_300));
 
         let d = Myth64::try_from(" +2.07").unwrap();
         assert_eq!(d, Myth64(20_700));
@@ -95,27 +99,6 @@ mod should {
 
         let d = Myth64::try_from("-12345.12343").unwrap();
         assert_eq!(d, -Myth64(1_234_512_34));
-    }
-
-    #[test]
-    fn cmp() {
-        let s1 = Myth64(200_000);
-        let i1 = Myth64(190_000);
-        let s2 = Myth64::from(20.0);
-        let i2 = Myth64::from(19.0);
-
-        assert!(s1 > i1);
-        assert_eq!(s1.partial_cmp(&i1).unwrap(), Ordering::Greater);
-        assert_eq!(s1, s1);
-        assert_eq!(s1.partial_cmp(&s1).unwrap(), Ordering::Equal);
-
-        assert!(s2 > i2);
-        assert_eq!(s2.partial_cmp(&i2).unwrap(), Ordering::Greater);
-        assert_eq!(s2, s1);
-        assert_eq!(s2.partial_cmp(&s1).unwrap(), Ordering::Equal);
-
-        assert_eq!(i1.cmp(&s1), Ordering::Less);
-        assert_eq!(i1.cmp(&i1), Ordering::Equal);
     }
 
     #[test]
@@ -128,17 +111,17 @@ mod should {
         assert_eq!(Myth64(-4990), Myth64::from(-0.4993).round(Unit::MY));
         assert_eq!(Myth64(-10000), Myth64::from(-5000).round(Unit::MM));
         let m = Myth64::from(340.993);
-        assert_eq!(10, Unit::DYN(1).multiply());
-        assert_eq!(Myth64(3_409_930), m.round(Unit::DYN(1)));
-        assert_eq!(100, Unit::DYN(2).multiply());
-        assert_eq!(Myth64(3_409_900), m.round(Unit::DYN(2)));
-        assert_eq!(1000, Unit::DYN(3).multiply());
-        assert_eq!(Myth64(3_410_000), m.round(Unit::DYN(3)));
-        assert_eq!(Myth64(3_400_000), m.floor(Unit::DYN(4)));
+        assert_eq!(10, *Unit::potency(1));
+        assert_eq!(Myth64(3_409_930), m.round(Unit::potency(1)));
+        assert_eq!(100, *Unit::potency(2));
+        assert_eq!(Myth64(3_409_900), m.round(Unit::potency(2)));
+        assert_eq!(1000, *Unit::potency(3));
+        assert_eq!(Myth64(3_410_000), m.round(Unit::potency(3)));
+        assert_eq!(Myth64(3_400_000), m.floor(Unit::potency(4)));
         assert_eq!(-340.000, -(340.993_f64.floor()));
         assert_eq!(
             Myth64(-3_400_000),
-            Myth64::from(-340.993).floor(Unit::DYN(4))
+            Myth64::from(-340.993).floor(Unit::potency(4))
         );
     }
 

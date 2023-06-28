@@ -75,7 +75,7 @@ macro_rules! try_from_number {
     }
 }
 
-macro_rules! math_number {
+macro_rules! standard_myths {
     ($class:ident, $typ:ident, $($target:ident),+) => {
         $(
             impl Add<$target> for $class {
@@ -118,25 +118,30 @@ macro_rules! math_number {
         )+
 
         impl $class {
+            #[must_use]
+            pub const fn as_i64(&self) -> i64 {
+                self.0 as i64
+            }
 
             #[inline]
             #[must_use]
             pub fn as_mm(&self) -> f64 {
-                self.0 as f64 / Unit::MM.multiply() as f64
+                self.0 as f64 / *Unit::MM as f64
             }
 
             /// Returns the value in the given `Unit`.
             #[must_use]
             pub fn as_unit(&self, unit: Unit) -> f64 {
-                self.0 as f64 / unit.multiply() as f64
+                self.0 as f64 / *unit as f64
             }
 
             /// Rounds to the given Unit.
-            pub fn round(&self, unit: Unit) -> Self {
-                if unit.multiply() == 0 {
+            pub fn round(&self, unit: Unit) -> $class {
+                let unit = *unit;
+                if unit == 0 {
                     return *self;
                 }
-                let m = $typ::try_from(unit.multiply()).expect("Unit.multiply to big.");
+                let m = $typ::try_from(unit).expect("Unit.multiply to big.");
                 let clip = self.0 % m;
                 match m / 2 {
                     _ if clip == 0 => *self, // don't round
@@ -147,20 +152,54 @@ macro_rules! math_number {
             }
 
             /// Finds the nearest integer less than or equal to x at the given `Unit`.
-            pub fn floor(&self, unit: Unit) -> Self {
+            pub fn floor(&self, unit: Unit) -> $class {
                 let val = self.0;
-                let m = $typ::try_from(unit.multiply()).expect("Unit.multiply to big.");
+                let m = $typ::try_from(*unit).expect("Unit.multiply to big.");
                 let clip = val % m;
                 Self(val - clip)
             }
-        }
 
-        impl Deref for $class {
-            type Target = $typ;
-
-            fn deref(&self) -> &Self::Target {
-                &self.0
+            /// Computes the absolute value of self.
+            pub const fn abs(&self) -> $class {
+                if self.0 < 0 {
+                    Self(-self.0)
+                } else {
+                    *self
+                }
             }
+
+            /// Computes the absolute difference between `self` and `other`.
+            pub const fn abs_diff(self, other: $class) -> $class {
+                Self(self.0 - other.0).abs()
+            }
+
+            /// Returns a number representing sign of self.
+            ///
+            ///   *  0 if the number is zero
+            ///   *  1 if the number is positive
+            ///   *  -1 if the number is negative
+            pub const fn signum(self) -> $class {
+                if self.is_negative() {
+                    Self(-1)
+                } else if self.is_positive() {
+                    Self(1)
+                } else {
+                    Self::ZERO
+                }
+            }
+
+            /// Returns `true` if `self` is negative and `false` if the number is zero or positive.
+            #[must_use]
+            pub const fn is_negative(&self) -> bool {
+                self.0 < 0
+            }
+
+            /// Returns `true` if `self` is positive and `false` if the number is zero or negative.
+            #[must_use]
+            pub const fn is_positive(&self) -> bool {
+                self.0 > 0
+            }
+
         }
 
         impl Debug for $class {
@@ -180,7 +219,7 @@ macro_rules! math_number {
                 if f.alternate() {
                     Display::fmt(&self.0, f)
                 } else {
-                    let val = self.round(Unit::DYN(4 - p)).0;
+                    let val = self.round(Unit::potency(4 - p)).0;
                     let l = if val.is_negative() { 6 } else { 5 };
                     let mut s = format!("{val:0l$}");
                     if p > 0 {
@@ -191,7 +230,6 @@ macro_rules! math_number {
                 }
             }
         }
-
 
         impl From<f64> for $class {
             fn from(f: f64) -> Self {
@@ -213,7 +251,7 @@ macro_rules! math_number {
 
         impl From<Unit> for $class {
             fn from(unit: Unit) -> Self {
-                $class::try_from(unit.multiply()).expect("addend out of scope")
+                $class::try_from(*unit).expect("Unit out of scope")
             }
         }
 
@@ -229,7 +267,7 @@ macro_rules! math_number {
             type Output = $class;
 
             fn add(self, rhs: Myth64) -> Self::Output {
-                $class::from(self.0 + $typ::try_from(rhs.as_i64()).expect("addend out of scope"))
+                $class::from(self.0 + $typ::try_from(rhs.as_i64()).expect("Addend out of scope"))
             }
         }
 
@@ -237,7 +275,7 @@ macro_rules! math_number {
             type Output = $class;
 
             fn add(self, rhs: Myth32) -> Self::Output {
-                $class::from(self.0 + $typ::try_from(rhs.as_i32()).expect("addend out of scope"))
+                $class::from(self.0 + $typ::try_from(rhs.as_i32()).expect("Addend out of scope"))
             }
         }
 
@@ -245,7 +283,7 @@ macro_rules! math_number {
             type Output = $class;
 
             fn add(self, rhs: Myth16) -> Self::Output {
-                $class::from(self.0 + $typ::try_from(rhs.as_i16()).expect("addend out of scope"))
+                $class::from(self.0 + $typ::try_from(rhs.as_i16()).expect("Addend out of scope"))
             }
         }
 
@@ -259,7 +297,7 @@ macro_rules! math_number {
             type Output = $class;
 
             fn sub(self, rhs: Myth64) -> Self::Output {
-                $class::from(self.0 - $typ::try_from(rhs.as_i64()).expect("minuend out of scope"))
+                $class::from(self.0 - $typ::try_from(rhs.as_i64()).expect("Minuend out of scope"))
             }
         }
 
@@ -267,7 +305,7 @@ macro_rules! math_number {
             type Output = $class;
 
             fn sub(self, rhs: Myth32) -> Self::Output {
-                $class::from(self.0 - $typ::try_from(rhs.as_i32()).expect("minuend out of scope"))
+                $class::from(self.0 - $typ::try_from(rhs.as_i32()).expect("Minuend out of scope"))
             }
         }
 
@@ -275,7 +313,7 @@ macro_rules! math_number {
             type Output = $class;
 
             fn sub(self, rhs: Myth16) -> Self::Output {
-                $class::from(self.0 - $typ::try_from(rhs.as_i16()).expect("minuend out of scope"))
+                $class::from(self.0 - $typ::try_from(rhs.as_i16()).expect("Minuend out of scope"))
             }
         }
 
@@ -301,17 +339,6 @@ macro_rules! math_number {
             }
         }
 
-        impl PartialOrd for $class {
-            fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-                self.0.partial_cmp(&other.0)
-            }
-        }
-
-        impl Ord for $class {
-            fn cmp(&self, other: &Self) -> Ordering {
-                self.0.cmp(&other.0)
-            }
-        }
     }
 }
 
@@ -323,7 +350,7 @@ fn str2int(bytes: &[u8]) -> Result<i64, ToleranceError> {
             0x30..=0x39 => v = v * 10 + i64::from(c - 0x30),
             _ => {
                 return ToleranceError::parse_err(
-                    "cannot parse Tolerance found non-numerical literal",
+                    "Cannot parse Tolerance found non-numerical literal",
                 )
             }
         }
@@ -333,24 +360,25 @@ fn str2int(bytes: &[u8]) -> Result<i64, ToleranceError> {
 
 #[inline]
 pub(crate) fn try_from_str(value: &str) -> Result<i64, ToleranceError> {
+    const ERROR_TEXT: &str = "Cannot parse Tolerance from empty string";
     let (base, fraction) = value.split_once('.').unwrap_or((value, "0"));
     let mut base = base.as_bytes();
     let Some(&c) = base.first() else {
-        return ToleranceError::parse_err("cannot parse Tolerance from empty string");
+        return ToleranceError::parse_err(ERROR_TEXT);
     };
     let sign = 1 - i64::from(c == b'-') * 2;
     if c == b'-' || c == b'+' {
         base = &base[1..];
     }
     if base.is_empty() {
-        return ToleranceError::parse_err("cannot parse Tolerance from empty string");
+        return ToleranceError::parse_err(ERROR_TEXT);
     }
     let fraction = fraction.to_string() + "00000";
     let fraction = fraction.split_at(4).0.as_bytes();
     Ok((str2int(base)? * Myth64::MM.as_i64() + str2int(fraction)?) * sign)
 }
 
-macro_rules! multiply_all {
+macro_rules! multiply_tolerance {
     ($class:ident, $($typ:ty),+) => {
 
         $(impl Mul<$typ> for $class {
@@ -366,4 +394,4 @@ macro_rules! multiply_all {
     };
 }
 
-pub(crate) use {from_number, math_number, multiply_all, try_from_number};
+pub(crate) use {from_number, multiply_tolerance, standard_myths, try_from_number};

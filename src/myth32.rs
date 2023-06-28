@@ -1,10 +1,9 @@
 use crate::{error::ToleranceError, Myth16, Myth64, Unit};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use std::cmp::Ordering;
 use std::convert::TryFrom;
 use std::fmt::{Debug, Display, Formatter};
-use std::ops::{Add, AddAssign, Deref, Div, Mul, Neg, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign};
 
 ///
 /// # Myth32
@@ -39,7 +38,7 @@ use std::ops::{Add, AddAssign, Deref, Div, Mul, Neg, Sub, SubAssign};
 ///
 
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Default, PartialOrd, Ord)]
 #[must_use]
 pub struct Myth32(i32);
 
@@ -53,12 +52,12 @@ impl Myth32 {
     pub const MIN: Myth32 = Myth32(i32::MIN);
 
     #[must_use]
-    pub fn as_i32(&self) -> i32 {
+    pub const fn as_i32(&self) -> i32 {
         self.0
     }
 }
 
-super::math_number!(Myth32, i32, u64, u32, u16, u8, usize, i64, i32, i16, i8, isize);
+super::standard_myths!(Myth32, i32, u64, u32, u16, u8, usize, i64, i32, i16, i8, isize);
 super::from_number!(Myth32, u16, u8, i32, i16, i8);
 super::try_from_number!(Myth32, u64, u32, i64, isize, usize);
 
@@ -84,6 +83,14 @@ impl TryFrom<String> for Myth32 {
     }
 }
 
+impl std::str::FromStr for Myth32 {
+    type Err = ToleranceError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::try_from(super::try_from_str(s.trim())?)
+    }
+}
+
 impl TryFrom<Myth64> for Myth32 {
     type Error = ToleranceError;
 
@@ -94,7 +101,7 @@ impl TryFrom<Myth64> for Myth32 {
 
 #[cfg(test)]
 mod should {
-    use super::{Myth32, Ordering, Unit};
+    use super::{Myth32, Unit};
 
     #[test]
     fn try_from_str() {
@@ -107,27 +114,6 @@ mod should {
         assert_eq!(d, Myth32(20_700));
         let d = Myth32::try_from("-3.01").unwrap();
         assert_eq!(d, Myth32(-30_100));
-    }
-
-    #[test]
-    fn cmp() {
-        let s1 = Myth32(200_000);
-        let i1 = Myth32(190_000);
-        let s2 = Myth32::from(20.0);
-        let i2 = Myth32::from(19.0);
-
-        assert!(s1 > i1);
-        assert_eq!(s1.partial_cmp(&i1).unwrap(), Ordering::Greater);
-        assert_eq!(s1, s1);
-        assert_eq!(s1.partial_cmp(&s1).unwrap(), Ordering::Equal);
-
-        assert!(s2 > i2);
-        assert_eq!(s2.partial_cmp(&i2).unwrap(), Ordering::Greater);
-        assert_eq!(s2, s1);
-        assert_eq!(s2.partial_cmp(&s1).unwrap(), Ordering::Equal);
-
-        assert_eq!(i1.cmp(&s1), Ordering::Less);
-        assert_eq!(i1.cmp(&i1), Ordering::Equal);
     }
 
     #[test]
@@ -148,17 +134,17 @@ mod should {
         assert_eq!(Myth32(-4990), Myth32::from(-0.4993).round(Unit::MY));
         assert_eq!(Myth32(-10000), Myth32::from(-5000).round(Unit::MM));
         let m = Myth32::from(340.993);
-        assert_eq!(10, Unit::DYN(1).multiply());
-        assert_eq!(Myth32(3_409_930), m.round(Unit::DYN(1)));
-        assert_eq!(100, Unit::DYN(2).multiply());
-        assert_eq!(Myth32(3_409_900), m.round(Unit::DYN(2)));
-        assert_eq!(1000, Unit::DYN(3).multiply());
-        assert_eq!(Myth32(3_410_000), m.round(Unit::DYN(3)));
-        assert_eq!(Myth32(3_400_000), m.floor(Unit::DYN(4)));
+        assert_eq!(10, *Unit::potency(1));
+        assert_eq!(Myth32(3_409_930), m.round(Unit::potency(1)));
+        assert_eq!(100, *Unit::potency(2));
+        assert_eq!(Myth32(3_409_900), m.round(Unit::potency(2)));
+        assert_eq!(1000, *Unit::potency(3));
+        assert_eq!(Myth32(3_410_000), m.round(Unit::potency(3)));
+        assert_eq!(Myth32(3_400_000), m.floor(Unit::potency(4)));
         assert_eq!(-340.000, -(340.993_f64.floor()));
         assert_eq!(
             Myth32(-3_400_000),
-            Myth32::from(-340.993).floor(Unit::DYN(4))
+            Myth32::from(-340.993).floor(Unit::potency(4))
         );
     }
 
@@ -196,5 +182,12 @@ mod should {
         let m = Myth32::from(12456.832);
         assert_eq!(m.as_unit(Unit::CM), 1245.6832);
         assert_eq!(m.as_unit(Unit::METER), 12.456_832);
+    }
+
+    #[test]
+    fn compute_absolute_value() {
+        assert_eq!(Myth32::from(23455), Myth32::from(23455).abs());
+        assert_eq!(Myth32::from(23455), Myth32::from(-23455).abs());
+        assert_eq!(Myth32::from(0), Myth32::from(0).abs());
     }
 }

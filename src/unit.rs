@@ -1,53 +1,62 @@
-use super::Myth64;
-use std::ops::Mul;
+use std::ops::{Deref, Mul};
 
-#[derive(Copy, Clone, Debug)]
-pub enum Unit {
-    /// My-meter `μ` the equivalent to `DYN(1)`.
-    MY,
-    /// Millimeter `1 mm = 1000 μ` the equivalent to `DYN(4)`.
-    MM,
-    /// Centimeter `1 cm = 10 mm = 10_000 μ` the equivalent to `DYN(5)`.
-    CM,
+/// # Unit-conversation helper.
+///
+/// This `Unit` is used to translate the [Myth64](./struct.Myth64.html),
+/// and [Myth32](./struct.Myth32.html) and [Myth16](./struct.Myth16.html)-types into other
+/// length-units.
+///
+#[derive(Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq)]
+pub struct Unit(i64);
+
+impl Unit {
+    /// My-meter `μ` the equivalent to `potency(1)`.
+    pub const MY: Unit = Unit(10);
+
+    /// Millimeter `1 mm = 1000 μ` the equivalent to `potency(4)`.
+    pub const MM: Unit = Unit(1_000 * 10);
+
+    /// Centimeter `1 cm = 10 mm = 10_000 μ` the equivalent to `potency(5)`.
+    pub const CM: Unit = Unit(10_000 * 10);
+
     /// Inch `1 in = 25.4 mm = 25_400 μ`.
-    INCH,
+    pub const INCH: Unit = Unit(25_400 * 10);
+
     /// Foot `1 ft = 12 in = 304.8 mm = 304_800 μ`.
-    FT,
+    pub const FT: Unit = Unit(304_800 * 10);
+
     /// Yard `1 yd = 3 ft = 914.4 mm = 914_400 μ`.
-    YD,
-    /// Meter `100 cm = 1_000 mm = 1_000_000 μ` the equivalent to `DYN(7)`.
-    METER,
-    /// Kilometer `1 km = 1_000 m` the equivalent to `DYN(10)`.
-    KM,
+    pub const YD: Unit = Unit(914_400 * 10);
+
+    /// Meter `100 cm = 1_000 mm = 1_000_000 μ` the equivalent to `potency(7)`.
+    pub const METER: Unit = Unit(1_000_000 * 10);
+
+    /// Kilometer `1 km = 1_000 m` the equivalent to `potency(10)`.
+    pub const KM: Unit = Unit(1_000_000_000 * 10);
+
     /// Mile `1 mi = 1760 yd = 1609.344 m = 1_609_344_000 μ`.
-    MILE,
-    /// As exponent `10 ^ x`.  
-    DYN(usize),
+    pub const MILE: Unit = Unit(1_609_344_000 * 10);
 }
 
 impl Unit {
     #[inline]
     #[must_use]
-    pub fn multiply(&self) -> i64 {
-        use Unit::{CM, DYN, FT, INCH, KM, METER, MILE, MM, MY, YD};
-        match self {
-            MY => Myth64::MY,
-            MM => Myth64::MY * 1_000,
-            CM => Myth64::MY * 10_000,
-            INCH => Myth64::MY * 25_400,
-            FT => Myth64::MY * 304_800,
-            YD => Myth64::MY * 914_400,
-            METER => Myth64::MY * 1_000_000,
-            KM => Myth64::MY * 1_000_000_000,
-            MILE => Myth64::MY * 1_609_344_000,
-            DYN(p) => (0..*p).fold(1i64, |acc, _| acc * 10),
-        }
+    pub const fn multiply(&self) -> i64 {
+        self.0
+    }
+
+    /// ten to the power of `p`.  `10^p`
+    #[must_use]
+    pub fn potency(p: usize) -> Unit {
+        Unit((0..p).fold(1i64, |acc, _| acc * 10))
     }
 }
 
-impl PartialEq for Unit {
-    fn eq(&self, other: &Self) -> bool {
-        self.multiply() == other.multiply()
+impl Deref for Unit {
+    type Target = i64;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 
@@ -55,40 +64,46 @@ macro_rules! unit_from_number {
     ($($typ:ident),+) => {
         $(
             impl Mul<$typ> for Unit {
-                type Output = Myth64;
+                type Output = Unit;
 
                 fn mul(self, rhs: $typ) -> Self::Output {
-                    Myth64::from(self.multiply() * rhs as i64)
+                    Unit(self.0 * rhs as i64)
                 }
             }
 
-             impl Mul<Unit> for $typ {
-                type Output = Myth64;
+            impl Mul<Unit> for $typ {
+                type Output = $typ;
 
                 fn mul(self, rhs: Unit) -> Self::Output {
-                    Myth64::from(rhs.multiply() * self as i64)
+                    self * rhs.0 as $typ
+                }
+            }
+
+            impl From<Unit> for $typ {
+                fn from(value: Unit) -> Self {
+                    value.0 as $typ
                 }
             }
         )+
     }
 }
 
-unit_from_number!(i8, i16, i32, i64, u8, u16, u32, u64);
+unit_from_number!(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize);
 
 #[cfg(test)]
 mod should {
-    use crate::{Myth64, Unit};
+    use super::Unit;
 
     #[test]
     fn multiply_with_number() {
-        assert_eq!(Myth64::from(3.0), 3 * Unit::MM);
-        assert_eq!(Myth64::from(55000.0), 55 * Unit::METER);
+        assert_eq!(30_000, 3 * Unit::MM);
+        assert_eq!(550_000_000, 55 * Unit::METER);
     }
 
     #[test]
     fn be_equal_dyn() {
-        assert_eq!(Unit::MY.multiply(), Unit::DYN(1).multiply());
-        assert_eq!(Unit::MM.multiply(), Unit::DYN(4).multiply());
-        assert_eq!(Unit::METER, Unit::DYN(7));
+        assert_eq!(Unit::MY, Unit::potency(1));
+        assert_eq!(Unit::MM, Unit::potency(4));
+        assert_eq!(Unit::potency(7), Unit::METER);
     }
 }

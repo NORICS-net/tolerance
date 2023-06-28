@@ -4,12 +4,12 @@ use std::cmp::Ordering;
 use std::convert::TryFrom;
 use std::fmt::Debug;
 use std::iter::Sum;
-use std::ops::{Add, AddAssign, Mul, Not, Sub};
+use std::ops::{Add, AddAssign, Mul, Neg, Not, Sub};
 
 use crate::error::ToleranceError::ParseError;
 use crate::{error, Myth32, Myth64};
 
-/// # `T128`
+/// # The 128bit tolerance-type
 ///
 /// A 128bit wide type to hold values with a tolerance. Using [Myth64](./struct.Myth64.html) as
 /// `value` and [Myth32](./struct.Myth32.html) as `plus` and `minus`. Comes with helper methods to
@@ -129,6 +129,14 @@ impl Not for T128 {
 
     fn not(self) -> Self::Output {
         self.invert()
+    }
+}
+
+impl Neg for T128 {
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        Self::new(-self.value, -self.plus, -self.minus)
     }
 }
 
@@ -292,7 +300,7 @@ impl From<T128> for (f64, f64, f64) {
     }
 }
 
-super::multiply_all!(T128, u64, u32, i64, i32);
+super::multiply_tolerance!(T128, u64, u32, i64, i32);
 
 impl<V, P, M> TryFrom<(Option<V>, Option<P>, Option<M>)> for T128
 where
@@ -443,14 +451,14 @@ mod should {
         assert!(tol.is_err(), "T128 ");
         assert_eq!(
             tol,
-            ToleranceError::parse_err("cannot parse Tolerance found non-numerical literal")
+            ToleranceError::parse_err("Cannot parse Tolerance found non-numerical literal")
         );
 
         let tol = T128::try_from("");
         assert!(tol.is_err(), "T128 ");
         assert_eq!(
             tol,
-            ToleranceError::parse_err("cannot parse Tolerance from empty string")
+            ToleranceError::parse_err("Cannot parse Tolerance from empty string")
         );
     }
 

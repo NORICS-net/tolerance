@@ -2,8 +2,8 @@
 name = "tolerance"
 description = "Rust datatype for the representation of the tolerance of measured quantities."
 repository = "https://github.com/NORICS-net/tolerance"
-version = "1.0.1"
-authors = ["Micha Glave <coding@migmedia.de>"]
+version = "1.0.2"
+authors = [ "Micha Glave <coding@migmedia.de>" ]
 edition = "2021"
 license = "MIT"
 readme = "README.md"
