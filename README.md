@@ -1,5 +1,9 @@
 # Tolerance 
 
+[![crates.io](https://img.shields.io/crates/v/tolerance.svg)](https://crates.io/crates/tolerance)
+[![crates.io](https://img.shields.io/crates/d/tolerance.svg)](https://crates.io/crates/tolerance)
+[![Documentation](https://docs.rs/tolerance/badge.svg)](https://docs.rs/tolerance)
+
 Math representation of the physically needed permissible deviation of measures in Rust
 avoiding floating point inaccuracy. Allows to calculate with tolerance ranges in a consistent way.
 
@@ -41,3 +45,14 @@ with a deviation of +/-3 mm (`Myth16`).
 ### History
 
 Started as [AllowanceValue](https://github.com/migmedia/allowance) renamed and moved for better usability.  
+
+## License
+
+Licensed under  MIT license (([LICENSE-MIT](LICENSE) or https://opensource.org/licenses/MIT)
+
+
+### Contribution
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in the work by you, as defined in the MIT license, shall be licensed as above,
+without any additional terms or conditions.
