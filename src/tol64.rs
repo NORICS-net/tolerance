@@ -204,13 +204,7 @@ impl Sub<Myth32> for T64 {
 
 impl PartialOrd<T64> for T64 {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        match self.value.partial_cmp(&other.value) {
-            Some(Ordering::Equal) => match self.minus.partial_cmp(&other.minus) {
-                Some(Ordering::Equal) => self.plus.partial_cmp(&other.plus),
-                x => x,
-            },
-            x => x,
-        }
+        Some(self.cmp(other))
     }
 }
 
@@ -254,7 +248,7 @@ impl Debug for T64 {
     }
 }
 
-/// A maybe harmful conversation. Ignores all possible tolerance.  
+/// A maybe harmful conversation. Ignores all possible tolerance.
 /// Returns a f64 representing a mm value.
 impl From<T64> for f64 {
     fn from(v: T64) -> Self {

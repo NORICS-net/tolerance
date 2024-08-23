@@ -24,9 +24,9 @@ use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign};
 /// Casting an `i64` into a `Myth16` can cause an `IntegerOverflow`-error similar to casting
 /// a big `i64`-value into an `i16`. It's up to the programmer to omit these situation.
 ///
-/// If your sizes can exceed 3 mm, than this type is __not__ for you. Again:   
+/// If your sizes can exceed 3 mm, than this type is __not__ for you. Again:
 ///
-/// **Don't try to store more then +/- 3 millimeter in a** `Myth16`.
+/// ⚠ **Don't try to store more then +/- 3 millimeter in a** `Myth16`.
 ///
 /// ### Example:
 /// ```rust

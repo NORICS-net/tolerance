@@ -70,8 +70,8 @@ impl TryFrom<String> for Myth64 {
 impl std::str::FromStr for Myth64 {
     type Err = ToleranceError;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        super::try_from_str(s.trim()).map(Self::from)
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        super::try_from_str(value.trim()).map(Self::from)
     }
 }
 
@@ -82,7 +82,7 @@ mod should {
     #[test]
     fn try_from_str() {
         let d = Myth64::try_from("12345.12343").unwrap();
-        assert_eq!(d, Myth64(1_234_512_34));
+        assert_eq!(d, Myth64(123_451_234));
         let d = Myth64::try_from("6.02").unwrap();
         assert_eq!(d, Myth64(60_200));
         let d = Myth64::try_from("18").unwrap();
@@ -98,7 +98,7 @@ mod should {
         assert_eq!(d, Myth64(-30_100));
 
         let d = Myth64::try_from("-12345.12343").unwrap();
-        assert_eq!(d, -Myth64(1_234_512_34));
+        assert_eq!(d, -Myth64(123_451_234));
     }
 
     #[test]

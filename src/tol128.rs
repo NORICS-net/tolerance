@@ -202,15 +202,9 @@ impl Sub<Myth64> for T128 {
     }
 }
 
-impl PartialOrd<T128> for T128 {
+impl PartialOrd for T128 {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        match self.value.partial_cmp(&other.value) {
-            Some(Ordering::Equal) => match self.minus.partial_cmp(&other.minus) {
-                Some(Ordering::Equal) => self.plus.partial_cmp(&other.plus),
-                x => x,
-            },
-            x => x,
-        }
+        Some(self.cmp(other))
     }
 }
 
@@ -255,7 +249,7 @@ impl Debug for T128 {
 }
 
 /// A maybe harmful conversation. Ignores all possible tolerance.
-/// Returns a f64 representing a mm value.    
+/// Returns a f64 representing a mm value.
 impl From<T128> for f64 {
     fn from(v: T128) -> Self {
         v.value.as_mm()

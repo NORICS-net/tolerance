@@ -45,7 +45,7 @@ impl Unit {
         self.0
     }
 
-    /// ten to the power of `p`.  `10^p`
+    /// ten to the power of `p`. `10^p`
     #[must_use]
     pub fn potency(p: usize) -> Unit {
         Unit((0..p).fold(1i64, |acc, _| acc * 10))

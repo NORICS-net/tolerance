@@ -22,8 +22,9 @@ use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign};
 ///
 /// ### Warning
 /// Casting an `i64` into a `Myth32` can cause an `IntegerOverflow`-error similar to casting
-/// a big `i64`-value into an `i32`. It's up to the programmer to omit these situation. Don't
-/// try to store more then `+/- 214 meter` in a `Myth32`.
+/// a big `i64`-value into an `i32`. It's up to the programmer to omit these situation.
+///
+/// ⚠ **Don't try to store more then `+/- 214 meter` in a** `Myth32`.
 ///
 /// ### Example:
 /// ```rust
@@ -86,8 +87,8 @@ impl TryFrom<String> for Myth32 {
 impl std::str::FromStr for Myth32 {
     type Err = ToleranceError;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::try_from(super::try_from_str(s.trim())?)
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        Self::try_from(super::try_from_str(value.trim())?)
     }
 }
 
@@ -106,7 +107,7 @@ mod should {
     #[test]
     fn try_from_str() {
         let d = Myth32::try_from("12345.12343").unwrap();
-        assert_eq!(d, Myth32(1_234_512_34));
+        assert_eq!(d, Myth32(123_451_234));
         let d = Myth32::try_from("6.02").unwrap();
         assert_eq!(d, Myth32(60_200));
 

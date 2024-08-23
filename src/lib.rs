@@ -1,30 +1,4 @@
-//!
-//! # Tolerance
-//!
-//! Math representation of the physically needed permissible deviation of measures in Rust
-//! avoiding floating point inaccuracy. Allows to calculate with tolerance ranges in a
-//! consistent way.
-//!
-//! Based on `Myth`-types with a accuracy of 1/10th my-meter (= 0.1μ) as the name suggests.
-//!
-//! ### Example
-//!
-//! ```rust
-//! use tolerance::T128;
-//!
-//! let width1 = T128::new(100.0, 0.05, -0.2);
-//! let width2 = T128::with_sym(50.0, 0.05);
-//!
-//! // Adding two `T128`s is straightforward.
-//! assert_eq!(width1 + width2, T128::new(150.0, 0.1, -0.25));
-//!
-//! // `!` inverts the direction of tolerance to /subtract/ measures.
-//! assert_eq!(!width1, T128::new(-100.0, 0.2, -0.05));
-//!
-//! // Adding an inverted `T128` wides the tolerance.
-//! assert_eq!(width1 + !width1, T128::new(0.0, 0.25, -0.25));
-//! ```
-extern crate core;
+#![doc = include_str!("../README.md")]
 
 pub mod error;
 mod myth16;
@@ -271,6 +245,14 @@ macro_rules! standard_myths {
             }
         }
 
+        impl Add<&Myth64> for $class {
+            type Output = $class;
+
+            fn add(self, rhs: &Myth64) -> Self::Output {
+                $class::from(self.0 + $typ::try_from(rhs.as_i64()).expect("Addend out of scope"))
+            }
+        }
+
         impl Add<Myth32> for $class {
             type Output = $class;
 
@@ -279,10 +261,26 @@ macro_rules! standard_myths {
             }
         }
 
+        impl Add<&Myth32> for $class {
+            type Output = $class;
+
+            fn add(self, rhs: &Myth32) -> Self::Output {
+                $class::from(self.0 + $typ::try_from(rhs.as_i32()).expect("Addend out of scope"))
+            }
+        }
+
         impl Add<Myth16> for $class {
             type Output = $class;
 
             fn add(self, rhs: Myth16) -> Self::Output {
+                $class::from(self.0 + $typ::try_from(rhs.as_i16()).expect("Addend out of scope"))
+            }
+        }
+
+        impl Add<&Myth16> for $class {
+            type Output = $class;
+
+            fn add(self, rhs: &Myth16) -> Self::Output {
                 $class::from(self.0 + $typ::try_from(rhs.as_i16()).expect("Addend out of scope"))
             }
         }
@@ -301,6 +299,14 @@ macro_rules! standard_myths {
             }
         }
 
+        impl Sub<&Myth64> for $class {
+            type Output = $class;
+
+            fn sub(self, rhs: &Myth64) -> Self::Output {
+                $class::from(self.0 - $typ::try_from(rhs.as_i64()).expect("Minuend out of scope"))
+            }
+        }
+
         impl Sub<Myth32> for $class {
             type Output = $class;
 
@@ -309,10 +315,26 @@ macro_rules! standard_myths {
             }
         }
 
+        impl Sub<&Myth32> for $class {
+            type Output = $class;
+
+            fn sub(self, rhs: &Myth32) -> Self::Output {
+                $class::from(self.0 - $typ::try_from(rhs.as_i32()).expect("Minuend out of scope"))
+            }
+        }
+
         impl Sub<Myth16> for $class {
             type Output = $class;
 
             fn sub(self, rhs: Myth16) -> Self::Output {
+                $class::from(self.0 - $typ::try_from(rhs.as_i16()).expect("Minuend out of scope"))
+            }
+        }
+
+        impl Sub<&Myth16> for $class {
+            type Output = $class;
+
+            fn sub(self, rhs: &Myth16) -> Self::Output {
                 $class::from(self.0 - $typ::try_from(rhs.as_i16()).expect("Minuend out of scope"))
             }
         }
