@@ -361,6 +361,17 @@ macro_rules! standard_myths {
             }
         }
 
+        impl std::iter::Sum for $class {
+            fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+                iter.fold($class::ZERO, |acc, m| acc + m)
+            }
+        }
+
+        impl std::iter::Product for $class {
+            fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
+                iter.fold($class::ZERO, |acc, m| acc * m)
+            }
+        }
     }
 }
 

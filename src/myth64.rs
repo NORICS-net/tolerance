@@ -161,6 +161,12 @@ mod should {
         assert_eq!(m.as_unit(Unit::KM), 922_337_203.685_477_6);
     }
 
+    #[test]
+    fn sum() {
+        let m64s = (0..10).into_iter().map(|d| Myth64::from(d * 10_000));
+        assert_eq!(Myth64::from(450_000), m64s.sum());
+    }
+
     #[cfg(feature = "serde")]
     mod serde {
         use crate::Myth64;
