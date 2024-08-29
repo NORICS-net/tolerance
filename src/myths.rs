@@ -1,0 +1,407 @@
+pub(crate) mod myth16;
+pub(crate) mod myth32;
+pub(crate) mod myth64;
+
+macro_rules! from_number {
+    ($Self:ident, $($Target:ident),+) => {
+        $(
+            impl From<$Target> for $Self {
+                fn from(a: $Target) -> Self {
+                    Self(a.into())
+                }
+            }
+
+            impl From<$Self> for $Target {
+                fn from(a: $Self) -> Self {
+                    a.0 as $Target
+                }
+            }
+
+            impl <'a> From<&'a $Self> for $Target {
+                fn from(a: &$Self) -> Self {
+                    a.0 as $Target
+                }
+            }
+        )+
+    }
+}
+
+macro_rules! from_myths {
+    ($Self:ident, $($Target:ident),+) => {
+        $(
+            impl From<$Target> for $Self {
+                fn from(m: $Target) -> Self {
+                    Self::from(m.0)
+                }
+            }
+        )+
+    }
+}
+
+macro_rules! try_from_number {
+    ($Self:ident, $($Target:ident),+) => {
+        $(
+            impl TryFrom<$Target> for $Self {
+                type Error = ToleranceError;
+
+                fn try_from(value: $Target) -> Result<Self, Self::Error> {
+                    Ok(Self(value.try_into()?))
+                }
+            }
+        )+
+    }
+}
+
+macro_rules! try_from_myths {
+    ($Self:ident, $($Target:ident),+) => {
+        $(
+            impl TryFrom<$Target> for $Self {
+                type Error = ToleranceError;
+
+                #[allow(clippy::needless_question_mark)]
+                fn try_from(value: $Target) -> Result<Self, Self::Error> {
+                    Ok(Self::try_from(value.0)?)
+                }
+            }
+        )+
+    }
+}
+
+macro_rules! standard_myths {
+    ($Self:ident, $typ:ident, $($Target:ident),+) => {
+        $(
+            impl Mul<$Target> for $Self {
+                type Output = $Self;
+
+                fn mul(self, other: $Target) -> Self::Output {
+                    Self(self.0 * (other as $typ))
+                }
+            }
+
+            impl <'a> Mul<$Target> for &'a $Self {
+                type Output = $Self;
+
+                fn mul(self, other: $Target) -> Self::Output {
+                    $Self(self.0 * (other as $typ))
+                }
+            }
+
+            impl Mul<$Self> for $Target {
+                type Output = $Self;
+
+                fn mul(self, other: $Self) -> Self::Output {
+                    $Self(self as $typ * other.0)
+                }
+            }
+
+            impl Div<$Target> for $Self {
+                type Output = $Self;
+
+                fn div(self, other: $Target) -> Self::Output {
+                    Self(self.0 / (other as $typ))
+                }
+            }
+
+            impl <'a> Div<$Target> for &'a $Self {
+                type Output = $Self;
+
+                fn div(self, other: $Target) -> Self::Output {
+                    $Self(self.0 / (other as $typ))
+                }
+            }
+
+            impl Add<$Target> for $Self {
+                type Output = $Self;
+
+                fn add(self, other: $Target) -> Self::Output {
+                    $Self::from(self.0 + $typ::try_from(other).expect("Addend out of scope"))
+                }
+            }
+
+            impl Sub<$Target> for $Self {
+                type Output = $Self;
+
+                fn sub(self, other: $Target) -> Self::Output {
+                    $Self::from(self.0 - $typ::try_from(other).expect("Addend out of scope"))
+                }
+            }
+
+        )+
+
+        impl $Self {
+
+            pub const ONE: $Self = $Self(10_000);
+            pub const ZERO: $Self = $Self(0);
+            pub const MIN: $Self = $Self($typ::MIN);
+            pub const MAX: $Self = $Self($typ::MAX);
+
+            // --- deprecated
+            #[deprecated(since="1.0.3", note="please use [`ONE`](#associatedconstant.ONE) instead.")]
+            pub const MM: $Self = $Self(10_000);
+
+            #[must_use]
+            pub const fn as_i64(&self) -> i64 {
+                self.0 as i64
+            }
+
+            #[inline]
+            #[must_use]
+            #[deprecated(since="1.0.3", note="please use [`as_f64`](#method.as_f64) instead.")]
+            pub fn as_mm(&self) -> f64 {
+                self.as_f64()
+            }
+
+            #[inline]
+            #[must_use]
+            pub fn as_f64(&self) -> f64 {
+                self.0 as f64 / $Self::ONE.0 as f64
+            }
+
+            /// Returns the value in the given `Unit`.
+            #[must_use]
+            pub fn as_unit(&self, unit: Unit) -> f64 {
+                self.0 as f64 / *unit as f64
+            }
+
+            /// Rounds to the given Unit.
+            pub fn round(&self, unit: Unit) -> Self {
+                let unit = *unit;
+                if unit == 0 {
+                    return *self;
+                }
+                let m = $typ::try_from(unit).expect("Unit.multiply to big.");
+                let clip = self.0 % m;
+                match m / 2 {
+                    _ if clip == 0 => *self, // don't round
+                    x if clip <= -x => Self($typ::from(self.0) - clip - m),
+                    x if clip >= x => Self($typ::from(self.0) - clip + m),
+                    _ => Self(self.0 - clip as $typ),
+                }
+            }
+
+            /// Finds the nearest integer less than or equal to x at the given `Unit`.
+            pub fn floor(&self, unit: Unit) -> Self {
+                let val = self.0;
+                let m = $typ::try_from(*unit).expect("Unit.multiply to big.");
+                let clip = val % m;
+                Self(val - clip)
+            }
+
+            /// Computes the absolute value of self.
+            pub const fn abs(&self) -> Self {
+                if self.0 < 0 {
+                    Self(-self.0)
+                } else {
+                    *self
+                }
+            }
+
+            /// Computes the absolute difference between `self` and `other`.
+            pub const fn abs_diff(self, other: $Self) -> Self {
+                Self(self.0 - other.0).abs()
+            }
+
+            /// Returns a number representing sign of self.
+            ///
+            ///   *  0 if the number is zero
+            ///   *  1 if the number is positive
+            ///   *  -1 if the number is negative
+            pub const fn signum(self) -> Self {
+                if self.is_negative() {
+                    Self(-1)
+                } else if self.is_positive() {
+                    Self(1)
+                } else {
+                    Self::ZERO
+                }
+            }
+
+            /// Returns `true` if `self` is negative and `false` if the number is zero or positive.
+            #[must_use]
+            pub const fn is_negative(&self) -> bool {
+                self.0 < 0
+            }
+
+            /// Returns `true` if `self` is positive and `false` if the number is zero or negative.
+            #[must_use]
+            pub const fn is_positive(&self) -> bool {
+                self.0 > 0
+            }
+
+        }
+
+        impl Debug for $Self {
+            fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+                let val = self.0;
+                let n = if val.is_negative() { 6 } else { 5 };
+                let mut m = format!("{val:0n$}");
+                m.insert(m.len() - 4, '.');
+                write!(f, "{}({m})", stringify!($Self))
+            }
+        }
+
+        impl Display for $Self {
+            fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+                let p = f.precision().map_or(4, |p| p.min(4));
+                assert!(p <= 4, "{} has a limited precision of 4!", stringify!($Self));
+                if f.alternate() {
+                    Display::fmt(&self.0, f)
+                } else {
+                    let val = self.round(Unit::potency(4 - p)).0;
+                    let l = if val.is_negative() { 6 } else { 5 };
+                    let mut s = format!("{val:0l$}");
+                    if p > 0 {
+                        s.insert(s.len() - 4, '.');
+                    }
+                    s.truncate(s.len() - (4 - p));
+                    write!(f, "{s}")
+                }
+            }
+        }
+
+        impl TryFrom<&str> for $Self {
+            type Error = ToleranceError;
+
+            fn try_from(value: &str) -> Result<Self, Self::Error> {
+                crate::try_from_str(value.trim(), &stringify!($Self))
+                    .and_then(|i| Self::try_from(i).
+                        map_err(|_| ToleranceError::Overflow(format!("{value} is to big for {}", stringify!($Self))))
+                    )
+            }
+        }
+
+        impl TryFrom<String> for $Self {
+            type Error = ToleranceError;
+
+            fn try_from(value: String) -> Result<Self, Self::Error> {
+                crate::try_from_str(value.trim(), &stringify!($Self) )
+                .and_then(|i| Self::try_from(i).
+                    map_err(|_| ToleranceError::Overflow(format!("{value} is to big for {}", stringify!($Self))))
+                )
+            }
+        }
+
+        impl std::str::FromStr for $Self {
+            type Err = ToleranceError;
+
+            fn from_str(value: &str) -> Result<Self, Self::Err> {
+                crate::try_from_str(value.trim(), &stringify!($Self))
+                .and_then(|i| Self::try_from(i).
+                    map_err(|_| ToleranceError::Overflow(format!("{value} is to big for this type")))
+                )
+            }
+        }
+
+        impl From<f64> for $Self {
+            fn from(f: f64) -> Self {
+                assert!(
+                    f < $typ::MAX as f64 && f > $typ::MIN as f64,
+                    "{} overflow, the f64 is beyond the limits of this type ({}).",
+                    stringify!($typ),
+                    stringify!($Self),
+                );
+                Self((f * 10_000.0) as $typ)
+            }
+        }
+
+        impl From<$Self> for f64 {
+            fn from(f: $Self) -> Self {
+                f.0 as f64 / 10_000.0
+            }
+        }
+
+        impl From<Unit> for $Self {
+            fn from(unit: Unit) -> Self {
+                $Self::try_from(*unit).expect("Unit out of scope")
+            }
+        }
+
+        impl Neg for $Self {
+            type Output = $Self;
+
+            fn neg(self) -> Self::Output {
+                Self(-self.0)
+            }
+        }
+
+        impl <'a> Neg for &'a $Self {
+            type Output = $Self;
+
+            fn neg(self) -> Self::Output {
+                $Self(-self.0)
+            }
+        }
+    }
+}
+
+macro_rules! calc_with_myths {
+    ($Self:ident, $typ:ident, $($Target:ident),+) => {
+        $(
+            impl Add<$Target> for $Self {
+                type Output = $Self;
+
+                fn add(self, other: $Target) -> Self::Output {
+                    $Self::from(self.0 + $typ::try_from(other.0).expect("Addend out of scope"))
+                }
+            }
+
+            impl <'a> Add<&'a $Target> for $Self {
+                type Output = $Self;
+
+                fn add(self, other: &'a $Target) -> Self::Output {
+                    $Self::from(self.0 + $typ::try_from(other.0).expect("Addend out of scope"))
+                }
+            }
+
+            impl Sub<$Target> for $Self {
+                type Output = $Self;
+
+                fn sub(self, other: $Target) -> Self::Output {
+                    $Self::from(self.0 - $typ::try_from(other.0).expect("Minuend out of scope"))
+                }
+            }
+
+            impl <'a> Sub<&'a $Target> for $Self {
+                type Output = $Self;
+
+                fn sub(self, other: &'a $Target) -> Self::Output {
+                    $Self::from(self.0 - $typ::try_from(other.0).expect("Minuend out of scope"))
+                }
+            }
+        )+
+
+        impl AddAssign for $Self {
+            fn add_assign(&mut self, other: Self) {
+                self.0 += other.0;
+            }
+        }
+
+        impl SubAssign for $Self {
+            fn sub_assign(&mut self, other: Self) {
+                self.0 -= other.0;
+            }
+        }
+
+        impl std::iter::Sum for $Self {
+            fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+                iter.fold(Self::ZERO, Add::add)
+            }
+        }
+
+        impl<'a> std::iter::Sum<&'a $Self> for $Self {
+            fn sum<I: Iterator<Item=&'a Self>>(iter: I) -> Self {
+                iter.fold(
+                    Self::ZERO,
+                    |a, b| a + b,
+                )
+            }
+        }
+    }
+}
+
+pub(crate) use calc_with_myths;
+pub(crate) use from_myths;
+pub(crate) use from_number;
+pub(crate) use standard_myths;
+pub(crate) use try_from_myths;
+pub(crate) use try_from_number;

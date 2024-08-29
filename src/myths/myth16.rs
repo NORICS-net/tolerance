@@ -6,9 +6,10 @@ use std::fmt::{Debug, Display, Formatter};
 use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign};
 
 ///
-/// # Myth16
+/// # A 16bit measurement type
 ///
-/// A type to calculate lossless dimensions with a fixed precision.
+/// A type to calculate lossless dimensions with a fixed 4 digit precision.
+///
 /// All sizes are defined in the tenth fraction of `μ`:
 ///
 ///  * `10` = 1 μ
@@ -38,22 +39,13 @@ use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign};
 ///     assert_eq!(format!("{myth:#}"), "15000");
 /// ```
 ///
-///
 
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Default, PartialOrd, Ord)]
 #[must_use]
-pub struct Myth16(i16);
+pub struct Myth16(pub(crate) i16);
 
 impl Myth16 {
-    pub const MY: i16 = 10;
-    pub const MM: Myth16 = Myth16(1_000 * Self::MY);
-    pub const ZERO: Myth16 = Myth16(0);
-    /// Holds at maximum 3mm
-    pub const MAX: Myth16 = Myth16(i16::MAX);
-    /// Holds at minimum -3mm
-    pub const MIN: Myth16 = Myth16(i16::MIN);
-
     #[must_use]
     pub const fn as_i16(&self) -> i16 {
         self.0
@@ -63,48 +55,14 @@ impl Myth16 {
 super::standard_myths!(Myth16, i16, u64, u32, u16, u8, usize, i64, i32, i16, i8, isize);
 super::from_number!(Myth16, u8, i16, i8);
 super::try_from_number!(Myth16, u64, u32, u16, i64, isize, usize);
-
-impl From<Myth16> for Myth64 {
-    fn from(m: Myth16) -> Self {
-        Myth64::from(m.0)
-    }
-}
-
-impl From<Myth16> for Myth32 {
-    fn from(m: Myth16) -> Self {
-        Myth32::from(m.0)
-    }
-}
+super::try_from_myths!(Myth16, Myth32, Myth64);
+super::calc_with_myths!(Myth16, i16, Myth16);
 
 /// A potentially dangerous function.
 /// Use it for creating `Myth16` in tests or where you can control the danger.
 impl From<i32> for Myth16 {
     fn from(value: i32) -> Self {
         Self(value as i16)
-    }
-}
-
-impl TryFrom<&str> for Myth16 {
-    type Error = ToleranceError;
-
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        Self::try_from(super::try_from_str(value.trim())?)
-    }
-}
-
-impl TryFrom<String> for Myth16 {
-    type Error = ToleranceError;
-
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        Self::try_from(super::try_from_str(value.trim())?)
-    }
-}
-
-impl std::str::FromStr for Myth16 {
-    type Err = ToleranceError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::try_from(super::try_from_str(s.trim())?)
     }
 }
 

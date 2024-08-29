@@ -6,9 +6,10 @@ use std::fmt::{Debug, Display, Formatter};
 use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign};
 
 ///
-/// # Myth32
+/// # A 32bit measurement type
 ///
-/// A type to calculate lossless dimensions with a fixed precision.
+/// A type to calculate lossless dimensions with a fixed 4 digit precision.
+///
 /// All sizes are defined in the tenth fraction of `μ`:
 ///
 ///  * `10` = 1 μ
@@ -41,17 +42,9 @@ use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign};
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Default, PartialOrd, Ord)]
 #[must_use]
-pub struct Myth32(i32);
+pub struct Myth32(pub(crate) i32);
 
 impl Myth32 {
-    pub const MY: i32 = 10;
-    pub const MM: Myth32 = Myth32(1_000 * Self::MY);
-    pub const ZERO: Myth32 = Myth32(0);
-    /// Holds at maximum 214m
-    pub const MAX: Myth32 = Myth32(i32::MAX);
-    /// Holds at minimum -214m
-    pub const MIN: Myth32 = Myth32(i32::MIN);
-
     #[must_use]
     pub const fn as_i32(&self) -> i32 {
         self.0
@@ -61,44 +54,9 @@ impl Myth32 {
 super::standard_myths!(Myth32, i32, u64, u32, u16, u8, usize, i64, i32, i16, i8, isize);
 super::from_number!(Myth32, u16, u8, i32, i16, i8);
 super::try_from_number!(Myth32, u64, u32, i64, isize, usize);
-
-impl From<Myth32> for Myth64 {
-    fn from(m: Myth32) -> Self {
-        Myth64::from(m.0)
-    }
-}
-
-impl TryFrom<&str> for Myth32 {
-    type Error = ToleranceError;
-
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        Self::try_from(super::try_from_str(value.trim())?)
-    }
-}
-
-impl TryFrom<String> for Myth32 {
-    type Error = ToleranceError;
-
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        Self::try_from(super::try_from_str(value.trim())?)
-    }
-}
-
-impl std::str::FromStr for Myth32 {
-    type Err = ToleranceError;
-
-    fn from_str(value: &str) -> Result<Self, Self::Err> {
-        Self::try_from(super::try_from_str(value.trim())?)
-    }
-}
-
-impl TryFrom<Myth64> for Myth32 {
-    type Error = ToleranceError;
-
-    fn try_from(value: Myth64) -> Result<Self, Self::Error> {
-        Self::try_from(value.as_i64())
-    }
-}
+super::from_myths!(Myth32, Myth16);
+super::try_from_myths!(Myth32, Myth64);
+super::calc_with_myths!(Myth32, i32, Myth32, Myth16);
 
 #[cfg(test)]
 mod should {

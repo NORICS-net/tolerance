@@ -1,4 +1,4 @@
-use super::{error::ToleranceError, Myth16, Myth32, Unit};
+use crate::{error::ToleranceError, Myth16, Myth32, Unit};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
@@ -6,10 +6,11 @@ use std::fmt::{Debug, Display, Formatter};
 use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign};
 
 ///
-/// # Myth64
+/// # A 64bit measurement type
 ///
-/// A type to calculate lossless dimensions with a fixed precision.
-/// All sizes are defined in the tenth fraction of `μ`:
+/// A type to calculate lossless dimensions with a fixed 4 digit precision.
+///
+/// If you define [Myth64] as the tenth fraction of `μ`:
 ///
 ///  * `10` = 1 μ
 ///  * `10_000`  = 1 mm
@@ -18,7 +19,6 @@ use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign};
 /// The standard `Display::fmt`-methode represents the value in `mm`. The *alternate* Display
 /// shows the `i64` value.
 ///
-/// As `10_000` = 1 mm
 ///
 /// ### Example:
 /// ```rust
@@ -31,53 +31,39 @@ use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign};
 /// ```
 ///
 ///
-
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Default, PartialOrd, Ord)]
 #[must_use]
-pub struct Myth64(i64);
+pub struct Myth64(pub(crate) i64);
 
-impl Myth64 {
-    pub const MY: i64 = 10;
-    pub const MM: Myth64 = Myth64(1_000 * Self::MY);
-    pub const ZERO: Myth64 = Myth64(0);
-    /// Holds at MAX 922 337 203 km
-    pub const MAX: Myth64 = Myth64(i64::MAX);
-    /// Holds at MIN -922 337 203 km
-    pub const MIN: Myth64 = Myth64(i64::MIN);
-}
-
-super::standard_myths!(Myth64, i64, u64, u32, u16, u8, usize, i64, i32, i16, i8, isize);
+super::calc_with_myths!(Myth64, i64, Myth64, Myth32, Myth16);
+super::from_myths!(Myth64, Myth32, Myth16);
 super::from_number!(Myth64, u32, u16, u8, i64, i32, i16, i8);
+super::standard_myths!(Myth64, i64, u64, u32, u16, u8, usize, i64, i32, i16, i8, isize);
 super::try_from_number!(Myth64, u64, usize, isize);
-
-impl TryFrom<&str> for Myth64 {
-    type Error = ToleranceError;
-
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        super::try_from_str(value.trim()).map(Self::from)
-    }
-}
-
-impl TryFrom<String> for Myth64 {
-    type Error = ToleranceError;
-
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        super::try_from_str(value.trim()).map(Self::from)
-    }
-}
-
-impl std::str::FromStr for Myth64 {
-    type Err = ToleranceError;
-
-    fn from_str(value: &str) -> Result<Self, Self::Err> {
-        super::try_from_str(value.trim()).map(Self::from)
-    }
-}
 
 #[cfg(test)]
 mod should {
     use super::{Myth64, Unit};
+
+    #[test]
+    fn multiply() {
+        let d = Myth64(2_500_000);
+        let p1 = Myth64(100_000);
+        let p2 = Myth64(250_000);
+        assert_eq!(d, p1 * 25);
+        assert_eq!(d, 10 * p2);
+    }
+
+    #[test]
+    fn substract() {
+        let s = Myth64(350_000);
+        let s1 = Myth64(100_000);
+        let s2 = Myth64(250_000);
+
+        assert_eq!(s1, s - s2);
+        assert_eq!(s2, s - s1);
+    }
 
     #[test]
     fn try_from_str() {
@@ -99,6 +85,21 @@ mod should {
 
         let d = Myth64::try_from("-12345.12343").unwrap();
         assert_eq!(d, -Myth64(123_451_234));
+        let d = Myth64::try_from("-12345.12346345").unwrap();
+        assert_eq!(d, -Myth64(123_451_234));
+
+        // not parseble
+        let d = Myth64::try_from("12345*12343");
+        assert!(d.is_err());
+
+        let d = Myth64::try_from("   ");
+        assert!(d.is_err());
+
+        let d = Myth64::try_from(" -  ");
+        assert!(d.is_err());
+
+        let d = Myth64::try_from("+");
+        assert!(d.is_err());
     }
 
     #[test]

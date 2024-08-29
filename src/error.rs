@@ -12,13 +12,7 @@ impl std::error::Error for ToleranceError {}
 
 impl From<ParseFloatError> for ToleranceError {
     fn from(pfe: ParseFloatError) -> Self {
-        Self::ParseError(match pfe.to_string().as_str() {
-            "invalid float literal" => "invalid Tolerance literal".to_string(),
-            "cannot parse float from empty string" => {
-                "cannot parse Tolerance from empty string".to_string()
-            }
-            err => "Unknown error: ".to_string() + err,
-        })
+        Self::ParseError(pfe.to_string())
     }
 }
 
@@ -28,9 +22,10 @@ impl From<TryFromIntError> for ToleranceError {
     }
 }
 
+/// The error that never happens.
 impl From<Infallible> for ToleranceError {
     fn from(_: Infallible) -> Self {
-        Self::ParseError("should have been infallible".to_string())
+        Self::ParseError(String::new())
     }
 }
 

@@ -4,10 +4,11 @@
 [![crates.io](https://img.shields.io/crates/d/tolerance.svg)](https://crates.io/crates/tolerance)
 [![Documentation](https://docs.rs/tolerance/badge.svg)](https://docs.rs/tolerance)
 
-Math representation of the physically needed permissible deviation of measures in Rust
-avoiding floating point inaccuracy. Allows to calculate with tolerance ranges in a consistent way.
+Math representation of the physically needed permissible deviation of measures.
+Avoiding floating point inaccuracy by calculating with 4 fractional digits.
+Allows to calculate with tolerance ranges in a consistent way.
 
-Based of an own type `Myth` with a accuracy of 1/10th my-meter (= 0.1μ).
+Based of own types `Myth64`, `Myth32`, `Myth16` with a accuracy of 1/10th my-meter (= 0.1μ).
 
 ### Example
 
@@ -27,7 +28,7 @@ assert_eq!(!width1, T128::new(-100.0, 0.2, -0.05));
 assert_eq!(width1 + !width1, T128::new(0.0, 0.25, -0.25));
 ```
 
-### Limits
+### ⚠ Limits
 
 #### T128
 
