@@ -43,6 +43,7 @@ super::multiply_tolerance!(T64, u64, u32, u16, u8, i64, i32);
 mod should {
     use super::T64;
     use crate::error::ToleranceError;
+    use pretty_assertions::assert_eq;
     use std::convert::TryFrom;
 
     #[test]
@@ -88,8 +89,8 @@ mod should {
         assert_eq!(format!("{o}"), String::from("2.00 +0.005/-0.010"));
         assert_eq!(format!("{o:.3}"), "2.000 +0.0050/-0.0100".to_string());
         assert_eq!(format!("{o:.4}"), "2.0000 +0.0050/-0.0100".to_string());
-        assert_eq!(format!("{o:.0}"), String::from("2 +0.0/-0.0"));
-        assert_eq!(format!("{o:.1}"), String::from("2.0 +0.01/-0.01"));
+        assert_eq!(format!("{o:.0}"), String::from("2 +/-0.0"));
+        assert_eq!(format!("{o:.1}"), String::from("2.0 +/-0.01"));
 
         let o = T64::with_sym(20_000, 50);
         assert_eq!(format!("{o}"), String::from("2.00 +/-0.005"));
@@ -139,9 +140,7 @@ mod should {
         assert!(a.is_err(), "T64 ");
         assert_eq!(
             a.unwrap_err(),
-            ParseError(String::from(
-                "Found ascii #110 (a non-numerical literal) in input, can't parse input into a T64!"
-            ))
+            ParseError(String::from("T64 not parseble from 'nil'!"))
         );
 
         let a = T64::try_from("");

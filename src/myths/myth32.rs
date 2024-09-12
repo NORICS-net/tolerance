@@ -102,7 +102,7 @@ mod should {
         assert_eq!(Myth32(3_400_000), m.floor(Unit::potency(4)));
         assert_eq!(-340.000, -(340.993_f64.floor()));
         assert_eq!(
-            Myth32(-3_400_000),
+            Myth32(-3_410_000),
             Myth32::from(-340.993).floor(Unit::potency(4))
         );
     }

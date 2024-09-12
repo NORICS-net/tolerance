@@ -43,7 +43,58 @@ super::multiply_tolerance!(T128, u64, u32, u16, u8, i64, i32);
 mod should {
     use super::T128;
     use crate::error::ToleranceError;
+    use pretty_assertions::assert_eq;
     use std::convert::TryFrom;
+
+    #[test]
+    fn convert_from_string() {
+        assert_eq!(T128::try_from("14.0").unwrap(), T128::new(140_000, 0, 0));
+        assert_eq!(T128::try_from("14").unwrap(), T128::new(140_000, 0, 0));
+        assert_eq!(T128::try_from("14 0 0").unwrap(), T128::new(140_000, 0, 0));
+        assert_eq!(
+            T128::try_from("14.0 +1 -2").unwrap(),
+            T128::new(140_000, 10_000, -20_000)
+        );
+        assert_eq!(
+            T128::try_from("14.0 2 ").unwrap(),
+            T128::new(140_000, 20_000, -20_000)
+        );
+        assert_eq!(
+            T128::try_from("14.0 +-2 ").unwrap(),
+            T128::new(140_000, 20_000, -20_000)
+        );
+        assert_eq!(
+            T128::try_from("14.0 +/-2 ").unwrap(),
+            T128::new(140_000, 20_000, -20_000)
+        );
+
+        assert_eq!(
+            T128::try_from("14.0 2 1").unwrap(),
+            T128::new(140_000, 20_000, 10_000)
+        );
+        assert_eq!(
+            T128::try_from("14.0 -1 -2").unwrap(),
+            T128::new(140_000, -10_000, -20_000)
+        );
+
+        assert_eq!(
+            T128::try_from("141213 -1/-2").unwrap(),
+            T128::new(1_412_130_000, -10_000, -20_000)
+        );
+
+        assert_eq!(
+            T128::try_from("700 .1/-.25").unwrap(),
+            T128::new(7_000_000, 1_000, -2_500)
+        );
+        // eat your own output.
+        let t1 = T128::from((653.0, 3.0, -2.5));
+        assert_eq!("653.0 +3.00/-2.50", format!("{t1:.1}"));
+        assert_eq!(Ok(t1), T128::try_from(format!("{t1:.1}")));
+
+        let t1 = T128::from((-53.0, 3.0, -3.0));
+        assert_eq!("-53.0 +/-3.00", format!("{t1:.1}"));
+        assert_eq!(Ok(t1), T128::try_from(format!("{t1:.1}")));
+    }
 
     #[test]
     fn prove_tolerance_is_inside_of() {
@@ -79,8 +130,8 @@ mod should {
         assert_eq!(format!("{o}"), String::from("2.00 +0.005/-0.010"));
         assert_eq!(format!("{o:.3}"), "2.000 +0.0050/-0.0100".to_string());
         assert_eq!(format!("{o:.4}"), "2.0000 +0.0050/-0.0100".to_string());
-        assert_eq!(format!("{o:.0}"), String::from("2 +0.0/-0.0"));
-        assert_eq!(format!("{o:.1}"), String::from("2.0 +0.01/-0.01"));
+        assert_eq!(format!("{o:.0}"), String::from("2 +/-0.0"));
+        assert_eq!(format!("{o:.1}"), String::from("2.0 +/-0.01"));
 
         let o = T128::with_sym(20_000, 50);
         assert_eq!(format!("{o}"), String::from("2.00 +/-0.005"));
@@ -93,10 +144,7 @@ mod should {
 
         assert_eq!(format!("{o:#}"), String::from("-3500 +100/-140"));
 
-        assert_eq!(
-            format!("{o:.3?}"),
-            String::from("T128(-0.3500 +0.0100 -0.0140)")
-        );
+        assert_eq!("T128(-0.3500 +0.0100 -0.0140)", format!("{o:.3?}"));
     }
 
     #[test]
@@ -129,7 +177,7 @@ mod should {
         assert!(tol.is_err(), "T128 ");
         assert_eq!(
             tol,
-            ToleranceError::parse_err("Found ascii #110 (a non-numerical literal) in input, can't parse input into a T128!")
+            ToleranceError::parse_err("T128 not parseble from 'nil'!")
         );
 
         let tol = T128::try_from("");

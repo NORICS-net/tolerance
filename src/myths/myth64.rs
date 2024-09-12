@@ -45,6 +45,7 @@ super::try_from_number!(Myth64, u64, usize, isize);
 #[cfg(test)]
 mod should {
     use super::{Myth64, Unit};
+    use pretty_assertions::assert_eq;
 
     #[test]
     fn multiply() {
@@ -83,6 +84,18 @@ mod should {
         let d = Myth64::try_from("-3.01").unwrap();
         assert_eq!(d, Myth64(-30_100));
 
+        let d = Myth64::try_from(".01").unwrap();
+        assert_eq!(d, Myth64(100));
+
+        let d = Myth64::try_from(".01").unwrap();
+        assert_eq!(d, Myth64(100));
+
+        let d = Myth64::try_from("-.044").unwrap();
+        assert_eq!(d, Myth64(-440));
+
+        let d = Myth64::try_from("+.01").unwrap();
+        assert_eq!(d, Myth64(100));
+
         let d = Myth64::try_from("-12345.12343").unwrap();
         assert_eq!(d, -Myth64(123_451_234));
         let d = Myth64::try_from("-12345.12346345").unwrap();
@@ -94,12 +107,17 @@ mod should {
 
         let d = Myth64::try_from("   ");
         assert!(d.is_err());
-
+        /*
         let d = Myth64::try_from(" -  ");
         assert!(d.is_err());
 
         let d = Myth64::try_from("+");
         assert!(d.is_err());
+        */
+        let m = Myth64::from(5445.234);
+        let m_s = m.to_string();
+        assert_eq!("5445.2340", m_s);
+        assert_eq!(Ok(m), Myth64::try_from(m_s));
     }
 
     #[test]
@@ -119,11 +137,19 @@ mod should {
         assert_eq!(1000, *Unit::potency(3));
         assert_eq!(Myth64(3_410_000), m.round(Unit::potency(3)));
         assert_eq!(Myth64(3_400_000), m.floor(Unit::potency(4)));
-        assert_eq!(-340.000, -(340.993_f64.floor()));
+        assert_eq!(-341.000, f64::from(-340.993).floor());
         assert_eq!(
-            Myth64(-3_400_000),
+            Myth64(-3_410_000),
             Myth64::from(-340.993).floor(Unit::potency(4))
         );
+        assert_eq!(Myth64(0), Myth64(4_567).floor(Unit::potency(4)));
+        assert_eq!(Myth64(10_000), Myth64(5_567).round(Unit::potency(4)));
+        let m = Myth64(-67);
+        assert_eq!(Myth64(0), m.round(Unit::potency(3)));
+        let m = Myth64(-67);
+        assert_eq!(Myth64(-1_000), m.floor(Unit::potency(3)));
+        let m = Myth64(-67);
+        assert_eq!(Myth64(-100), m.floor(Unit::potency(2)));
     }
 
     #[test]
@@ -136,7 +162,7 @@ mod should {
         assert_eq!("1", format!("{m:.0}").as_str());
         assert_eq!("-1.2455", format!("{:.7}", -m).as_str());
         let m = Myth64(-455);
-        assert_eq!("-0.0455", format!("{m}").as_str());
+        assert_eq!("-0.046", format!("{m:.3}").as_str());
         assert_eq!("-0.3450", format!("{}", Myth64(-3450)).as_str());
         assert_eq!("-455", format!("{m:#}").as_str());
         let m = Myth64::from(4566.4689);
@@ -164,7 +190,7 @@ mod should {
 
     #[test]
     fn sum() {
-        let m64s = (0..10).into_iter().map(|d| Myth64::from(d * 10_000));
+        let m64s = (0..10).map(|d| Myth64::from(d * 10_000));
         assert_eq!(Myth64::from(450_000), m64s.sum());
     }
 

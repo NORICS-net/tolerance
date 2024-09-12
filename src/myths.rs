@@ -165,17 +165,16 @@ macro_rules! standard_myths {
 
             /// Rounds to the given Unit.
             pub fn round(&self, unit: Unit) -> Self {
-                let unit = *unit;
-                if unit == 0 {
+                if *unit == 0 {
                     return *self;
                 }
                 let m = $typ::try_from(unit).expect("Unit.multiply to big.");
                 let clip = self.0 % m;
                 match m / 2 {
                     _ if clip == 0 => *self, // don't round
-                    x if clip <= -x => Self($typ::from(self.0) - clip - m),
-                    x if clip >= x => Self($typ::from(self.0) - clip + m),
-                    _ => Self(self.0 - clip as $typ),
+                    x if clip <= -x => Self(self.0 - clip - m),
+                    x if clip >= x => Self(self.0 - clip + m),
+                    _ => Self(self.0 - clip),
                 }
             }
 
@@ -184,7 +183,10 @@ macro_rules! standard_myths {
                 let val = self.0;
                 let m = $typ::try_from(*unit).expect("Unit.multiply to big.");
                 let clip = val % m;
-                Self(val - clip)
+                if val < 0 {
+                    Self(val - clip - m)
+                } else {
+                    Self(val - clip)}
             }
 
             /// Computes the absolute value of self.
@@ -248,8 +250,8 @@ macro_rules! standard_myths {
                     Display::fmt(&self.0, f)
                 } else {
                     let val = self.round(Unit::potency(4 - p)).0;
-                    let l = if val.is_negative() { 6 } else { 5 };
-                    let mut s = format!("{val:0l$}");
+                    let l = if val.is_negative() || f.sign_plus() { 6 } else { 5 };
+                    let mut s = if f.sign_plus() { format!("{val:+0l$}") } else { format!("{val:0l$}") };
                     if p > 0 {
                         s.insert(s.len() - 4, '.');
                     }

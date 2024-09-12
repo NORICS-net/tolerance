@@ -43,7 +43,7 @@ macro_rules! tolerance_body {
             ) -> Self {
                 let plus = plus.into();
                 let minus = minus.into();
-                assert!(plus >= minus);
+                assert!(plus >= minus, "Plus has to be bigger than minus.");
                 Self {
                     value: value.into(),
                     plus,
@@ -269,22 +269,33 @@ macro_rules! tolerance_body {
         impl std::fmt::Display for $Self {
             fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
                 let (v, t) = f.precision().map_or((2, 3), |p| (p, p + 1));
-                let Self { value, plus, .. } = self;
-                let minus = &-self.minus;
+                let Self { value, plus, minus } = self;
                 if f.alternate() {
-                    return write!(f, "{value:#.v$} +{plus:#.t$}/-{minus:#.t$}");
+                    if minus.0 == 0 {
+                        return write!(f, "{value:#.v$} {plus:+#.t$}/-{minus:#.t$}");
+                    } else {
+                        return write!(f, "{value:#.v$} {plus:+#.t$}/{minus:+#.t$}");
+                    }
                 }
-                if plus == minus {
+                let tol_round = crate::Unit::potency(4 - t.min(4));
+                let plus = plus.round(tol_round);
+                let minus = minus.round(tol_round);
+                if plus == -minus {
                     write!(f, "{value:.v$} +/-{plus:.t$}")
                 } else {
-                    write!(f, "{value:.v$} +{plus:.t$}/-{minus:.t$}")
+                    if minus.0 == 0 {
+                        write!(f, "{value:.v$} {plus:+.t$}/-{minus:.t$}")
+                    } else {
+                        write!(f, "{value:.v$} {plus:+.t$}/{minus:+.t$}")
+                    }
+
                 }
             }
         }
 
         impl Debug for $Self {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                write!(f, "{}({} +{} -{})", stringify!($Self), self.value, self.plus, -self.minus)
+                write!(f, "{}({} {:+} {:+})", stringify!($Self), self.value, self.plus, self.minus)
             }
         }
 
@@ -361,7 +372,7 @@ macro_rules! tolerance_body {
                         Ok(Self {
                             value: v.try_into()?,
                             plus: p,
-                            minus: p,
+                            minus: -p,
                         })
                     },
                     (Some(v), None, None) => Ok(Self {
@@ -377,15 +388,19 @@ macro_rules! tolerance_body {
         impl TryFrom<&str> for $Self {
             type Error = error::ToleranceError;
 
-            fn try_from(value: &str) -> Result<Self, Self::Error> {
-                crate::try_from_str(value.trim(), &stringify!($Self))
-                .and_then(|i| $value::try_from(i).
-                    map_err(|_| error::ToleranceError::Overflow(format!("{value} is to big for this {}",stringify!($Self))))
-                ).map(|value| { Self {
-                    value,
-                    plus: $tol::ZERO,
-                    minus: $tol::ZERO,
-                }})
+            fn try_from(text : &str) -> Result<Self, Self::Error> {
+                let s = text.replace("+/-", " ").replace("+-", " ").replace('/', " ");
+                let parts: Vec<Result<i64, Self::Error>> = s.split_whitespace().map(| part | {
+                    crate::try_from_str(part, &stringify!($Self))
+                }).collect();
+                if parts.iter().find(|r| r.is_err()).is_some() {
+                    return Err(ParseError(format!("{} not parseble from '{text}'!", stringify!($Self))))
+                };
+                if parts.is_empty() {
+                    return Err(ParseError(format!("Cannot parse an empty string into a {}!", stringify!($Self))))
+                }
+                let mut parts = parts.into_iter().map(Result::unwrap);
+                $Self::try_from((parts.next(), parts.next(), parts.next()))
             }
         }
 
@@ -405,7 +420,7 @@ macro_rules! tolerance_body {
                     (Some(&v), Some(&p), Some(&m)) => Ok($Self::new(v, p, m)),
                     (Some(&v), Some(&p), None) => Ok($Self::new(v, p, -p)),
                     (Some(&v), None, None) => Ok($Self::new(v, 0, 0)),
-                    _ => Err(ParseError(format!("{} not parseble from '{triple:?}'", stringify!($Self)))),
+                    _ => Err(ParseError(format!("{} not parseble from '{triple:?}'!", stringify!($Self)))),
                 }
             }
         }
@@ -425,7 +440,7 @@ macro_rules! tolerance_body {
                         Ok(Self {
                             value: $value::try_from(v)?,
                             plus: p,
-                            minus: p,
+                            minus: -p,
                         })
                     }
                     (Some(&v), None, None) => Ok(Self {
@@ -433,7 +448,7 @@ macro_rules! tolerance_body {
                         plus: $tol::ZERO,
                         minus: $tol::ZERO,
                     }),
-                    _ => Err(ParseError(format!("{} not parseble from '{triple:?}'", stringify!($Self)))),
+                    _ => Err(ParseError(format!("{} not parseble from '{triple:?}'!", stringify!($Self)))),
                 }
             }
         }

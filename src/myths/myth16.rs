@@ -108,7 +108,7 @@ mod should {
         assert_eq!(1000, *Unit::potency(3));
         assert_eq!(Myth16(30000), m.round(Unit::potency(3)));
         assert_eq!(Myth16(20000), m.floor(Unit::potency(4)));
-        assert_eq!(Myth16(-20000), Myth16::from(-2.293).floor(Unit::potency(4)));
+        assert_eq!(Myth16(-30000), Myth16::from(-2.293).floor(Unit::potency(4)));
     }
 
     #[test]
