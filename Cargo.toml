@@ -2,7 +2,7 @@
 name = "tolerance"
 description = "Math representation of the physically needed permissible deviation of measures."
 repository = "https://github.com/NORICS-net/tolerance"
-version = "1.0.3"
+version = "1.0.4"
 authors = ["Micha Glave <coding@migmedia.de>"]
 edition = "2021"
 license = "MIT"
