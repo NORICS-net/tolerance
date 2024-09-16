@@ -5,11 +5,12 @@ use std::convert::TryFrom;
 use std::fmt::Debug;
 use std::iter::Sum;
 use std::ops::{Add, AddAssign, Mul, Neg, Not, Sub};
+use std::str::FromStr;
 
 use crate::error::ToleranceError::ParseError;
 use crate::{error, Myth16, Myth32};
 
-/// # The 64bit tolerance-type
+/// # 64bit tolerance-type
 ///
 /// A 64bit wide type to hold values with a tolerance. Using [Myth32](./struct.Myth32.html) as
 /// `value` and [Myth16](./struct.Myth16.html) as `plus` and `minus`. Comes with helper methods to
@@ -26,7 +27,7 @@ use crate::{error, Myth16, Myth32};
 /// ```
 ///
 /// The `plus` and `minus` tolerances are in the same scale unit as the `value`.
-/// `plus` is signed positiv (`+`) and `minus` is signed negative (`-`).
+/// `plus` is signed positive (`+`) and `minus` is signed negative (`-`).
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 #[must_use]
@@ -84,7 +85,7 @@ mod should {
     }
 
     #[test]
-    fn display_is_adjustible() {
+    fn display_is_adjustable() {
         let o = T64::new(20_000, 50, -100);
         assert_eq!(format!("{o}"), String::from("2.00 +0.005/-0.010"));
         assert_eq!(format!("{o:.3}"), "2.000 +0.0050/-0.0100".to_string());
@@ -116,7 +117,7 @@ mod should {
     }
 
     #[test]
-    fn substract() {
+    fn subtract() {
         let minuend = T64::from((1000.0, 0.0, 0.0));
         let subtrahend = T64::from((300.0, 0.2, -0.1));
         assert_eq!(minuend - subtrahend, (700.0, 0.1, -0.2).into());
@@ -140,14 +141,14 @@ mod should {
         assert!(a.is_err(), "T64 ");
         assert_eq!(
             a.unwrap_err(),
-            ParseError(String::from("T64 not parseble from 'nil'!"))
+            ParseError(String::from("T64 not parsable from 'nil'!"))
         );
 
         let a = T64::try_from("");
         assert!(a.is_err(), "T64 ");
         assert_eq!(
             a.unwrap_err(),
-            ParseError(String::from("Cannot parse an empty string into a T64!"))
+            ParseError(String::from("Can not parse an empty string into a T64!"))
         );
     }
 }

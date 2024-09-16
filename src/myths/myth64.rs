@@ -4,21 +4,21 @@ use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign};
+use std::str::FromStr;
 
 ///
-/// # A 64bit measurement type
+/// # 64bit measurement type
 ///
 /// A type to calculate lossless dimensions with a fixed 4 digit precision.
 ///
-/// If you define [Myth64] as the tenth fraction of `μ`:
+/// If you define `Myth64` as the tenth fraction of `μ`:
 ///
 ///  * `10` = 1 μ
 ///  * `10_000`  = 1 mm
 ///  * `10_000_000`  = 1 m
 ///
-/// The standard `Display::fmt`-methode represents the value in `mm`. The *alternate* Display
+/// The standard `Display::fmt`-method represents the value in `mm`. The *alternate* Display
 /// shows the `i64` value.
-///
 ///
 /// ### Example:
 /// ```rust
@@ -29,7 +29,6 @@ use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign};
 ///     assert_eq!(format!("{myth:.2}"), "12.50");
 ///     assert_eq!(format!("{myth:#}"), "125000");
 /// ```
-///
 ///
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Default, PartialOrd, Ord)]
@@ -57,7 +56,7 @@ mod should {
     }
 
     #[test]
-    fn substract() {
+    fn subtract() {
         let s = Myth64(350_000);
         let s1 = Myth64(100_000);
         let s2 = Myth64(250_000);
@@ -101,7 +100,7 @@ mod should {
         let d = Myth64::try_from("-12345.12346345").unwrap();
         assert_eq!(d, -Myth64(123_451_234));
 
-        // not parseble
+        // not parsable
         let d = Myth64::try_from("12345*12343");
         assert!(d.is_err());
 
@@ -137,7 +136,7 @@ mod should {
         assert_eq!(1000, *Unit::potency(3));
         assert_eq!(Myth64(3_410_000), m.round(Unit::potency(3)));
         assert_eq!(Myth64(3_400_000), m.floor(Unit::potency(4)));
-        assert_eq!(-341.000, f64::from(-340.993).floor());
+        assert_eq!(-341.000, (-340.993_f64).floor());
         assert_eq!(
             Myth64(-3_410_000),
             Myth64::from(-340.993).floor(Unit::potency(4))

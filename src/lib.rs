@@ -1,3 +1,10 @@
+// Thanks to: https://linebender.org/blog/doc-include
+//
+//! [`Myth64`]: Myth64
+//! [`Myth32`]: Myth32
+//! [`Myth16`]: Myth16
+//! [`T128`]: T128
+//! [`T64`]: T64
 #![doc = include_str!("../README.md")]
 
 pub mod error;

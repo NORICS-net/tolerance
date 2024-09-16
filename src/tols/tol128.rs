@@ -5,11 +5,12 @@ use std::convert::TryFrom;
 use std::fmt::Debug;
 use std::iter::Sum;
 use std::ops::{Add, AddAssign, Mul, Neg, Not, Sub};
+use std::str::FromStr;
 
 use crate::error::ToleranceError::ParseError;
 use crate::{error, Myth32, Myth64};
 
-/// # The 128bit tolerance-type
+/// # 128bit tolerance-type
 ///
 /// A 128bit wide type to hold values with a tolerance. Using [Myth64](./struct.Myth64.html) as
 /// `value` and [Myth32](./struct.Myth32.html) as `plus` and `minus`. Comes with helper methods to
@@ -26,7 +27,25 @@ use crate::{error, Myth32, Myth64};
 /// ```
 ///
 /// The `plus` and `minus` tolerances are in the same scale unit as the `value`.
-/// `plus` is signed positiv (`+`) and `minus` is signed negative (`-`).
+/// `plus` is signed positive (`+`) and `minus` is signed negative (`-`).
+///
+/// ### Ways to create a T128
+///
+/// ```rust
+/// # use tolerance::T128;
+/// # use std::str::FromStr;
+///
+/// // 12.6 +0.40/-1.00
+/// assert_eq!("12 .4 -1".parse(), Ok(T128::new(12.0, 0.4, -1.0)));
+/// assert_eq!("12/.4/-1".parse(), Ok(T128::new(12.0, 0.4, -1.0)));
+/// assert_eq!("12;0.4; -1".parse(), Ok(T128::new(12.0, 0.4, -1.0)));
+/// // 12 +/-0.4
+/// assert_eq!(T128::try_from("12.0 0.4"), Ok(T128::with_sym(12.0, 0.4)));
+/// assert_eq!(T128::from_str("12.0 +-0.4"), Ok(T128::new(12.0, 0.4, -0.4)));
+/// // 12.0 +/- 0
+/// assert_eq!(T128::try_from("12.0"), Ok(T128::from(12.0)));
+/// ```
+///
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 #[must_use]
@@ -125,7 +144,7 @@ mod should {
     }
 
     #[test]
-    fn display_is_adjustible() {
+    fn display_is_adjustable() {
         let o = T128::new(20_000, 50, -100);
         assert_eq!(format!("{o}"), String::from("2.00 +0.005/-0.010"));
         assert_eq!(format!("{o:.3}"), "2.000 +0.0050/-0.0100".to_string());
@@ -154,7 +173,7 @@ mod should {
     }
 
     #[test]
-    fn substract() {
+    fn subtract() {
         let minuend = T128::from((1000.0, 0.0, 0.0));
         let subtrahend = T128::from((300.0, 20.0, -10.0));
         assert_eq!(minuend - subtrahend, (700.0, 10.0, -20.0).into());
@@ -177,14 +196,14 @@ mod should {
         assert!(tol.is_err(), "T128 ");
         assert_eq!(
             tol,
-            ToleranceError::parse_err("T128 not parseble from 'nil'!")
+            ToleranceError::parse_err("T128 not parsable from 'nil'!")
         );
 
         let tol = T128::try_from("");
         assert!(tol.is_err(), "T128 ");
         assert_eq!(
             tol,
-            ToleranceError::parse_err("Cannot parse an empty string into a T128!")
+            ToleranceError::parse_err("Can not parse an empty string into a T128!")
         );
     }
 

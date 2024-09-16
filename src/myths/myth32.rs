@@ -4,9 +4,10 @@ use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign};
+use std::str::FromStr;
 
 ///
-/// # A 32bit measurement type
+/// # 32bit measurement type
 ///
 /// A type to calculate lossless dimensions with a fixed 4 digit precision.
 ///
@@ -16,7 +17,7 @@ use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign};
 ///  * `10_000`  = 1 mm
 ///  * `10_000_000`  = 1 m
 ///
-/// The standard `Display::fmt`-methode represents the value in `mm`. The *alternate* Display
+/// The standard `Display::fmt`-method represents the value in `mm`. The *alternate* Display
 /// shows the `i32` value.
 ///
 /// As `10_000` = 1 mm
@@ -36,7 +37,6 @@ use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign};
 ///     assert_eq!(format!("{myth:.2}"), "12.50");
 ///     assert_eq!(format!("{myth:#}"), "125000");
 /// ```
-///
 ///
 
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]

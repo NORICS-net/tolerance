@@ -68,28 +68,26 @@ macro_rules! tolerance_body {
                 Self::new(self.value, tol, -tol)
             }
 
-            /// Returns the maximum value of this tolerance.
-            ///
+            #[doc = concat!("Returns the maximum allowed value of this ", stringify!($Self), ".")]
             pub fn upper_limit(&self) -> $value {
                 self.value + self.plus
             }
 
             /// Returns the minimum value of this tolerance.
-            ///
+            #[doc = concat!("Returns the minimum allowed value of this ", stringify!($Self), ".")]
             pub fn lower_limit(&self) -> $value {
                 self.value + self.minus
             }
 
-            /// Returns `true`, if `this` tolerance is more narrow than the `other`.
-            ///
+            /// Returns `true`, if `self` is more narrow than the `other`.
             #[must_use]
             pub fn is_inside_of(&self, other: Self) -> bool {
                 self.lower_limit() >= other.lower_limit()
                     && self.upper_limit() <= other.upper_limit()
             }
 
-            /// Returns `true`, if `this` tolerance is less strict (around) the `other`.
-            ///
+            /// Returns `true`, if `self` is less strict (around) the `other`.
+            #[must_use]
             pub fn enfold(&self, other: impl Into<$Self>) -> bool {
                 let other = other.into();
                 self.lower_limit() <= other.lower_limit()
@@ -99,6 +97,7 @@ macro_rules! tolerance_body {
             #[doc = concat!("Inverts this `", stringify!($Self), "`.")]
             /// Interchanges the `plus` and `minus` parts.
             /// Required when measuring back in the opposite direction.
+            ///
             #[doc = concat!("Same as [`!value`](#impl-Not-for-", stringify!($Self), ").")]
             pub fn invert(&self) -> Self {
                 Self {
@@ -112,6 +111,7 @@ macro_rules! tolerance_body {
         #[doc = concat!("Inverts this `", stringify!($Self), "`.")]
         /// Interchanges the `plus` and `minus` parts.
         /// Required when measuring back in the opposite direction.
+        ///
         #[doc = concat!("Shortcut for the [`", stringify!($Self), ".invert()`](#method.invert)-method.")]
         impl Not for $Self {
             type Output = $Self;
@@ -121,6 +121,11 @@ macro_rules! tolerance_body {
             }
         }
 
+        #[doc = concat!("Inverts this `", stringify!($Self), "`.")]
+        /// Interchanges the `plus` and `minus` parts.
+        /// Required when measuring back in the opposite direction.
+        ///
+        #[doc = concat!("Shortcut for the [`", stringify!($Self), ".invert()`](#method.invert)-method.")]
         impl Not for &$Self {
             type Output = $Self;
 
@@ -129,7 +134,7 @@ macro_rules! tolerance_body {
             }
         }
 
-        #[doc = concat!("Inverses this `", stringify!($Self), "` as a whole.")]
+        #[doc = concat!("Inverts the signs of all fields in this `", stringify!($Self), "`.")]
         /// Like multiplying by `-1`.
         impl Neg for $Self {
             type Output = Self;
@@ -139,6 +144,8 @@ macro_rules! tolerance_body {
             }
         }
 
+        #[doc = concat!("Inverts the signs of all fields in this `", stringify!($Self), "`.")]
+        /// Like multiplying by `-1`.
         impl <'a> Neg for &'a $Self {
             type Output = $Self;
 
@@ -248,6 +255,10 @@ macro_rules! tolerance_body {
             }
         }
 
+        /// Defines the order by comparing:
+        /// 1. value
+        /// 2. minus
+        /// 3. plus
         impl Ord for $Self {
             fn cmp(&self, other: &Self) -> Ordering {
                 match self.value.cmp(&other.value) {
@@ -267,35 +278,30 @@ macro_rules! tolerance_body {
         }
 
         impl std::fmt::Display for $Self {
+
             fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
                 let (v, t) = f.precision().map_or((2, 3), |p| (p, p + 1));
-                let Self { value, plus, minus } = self;
-                if f.alternate() {
-                    if minus.0 == 0 {
-                        return write!(f, "{value:#.v$} {plus:+#.t$}/-{minus:#.t$}");
-                    } else {
-                        return write!(f, "{value:#.v$} {plus:+#.t$}/{minus:+#.t$}");
-                    }
-                }
                 let tol_round = crate::Unit::potency(4 - t.min(4));
-                let plus = plus.round(tol_round);
-                let minus = minus.round(tol_round);
-                if plus == -minus {
+                let plus = self.plus.round(tol_round);
+                let minus = self.minus.round(tol_round);
+                let value = self.value;
+                if plus == -minus && !f.alternate() && !plus.is_negative() {
                     write!(f, "{value:.v$} +/-{plus:.t$}")
                 } else {
-                    if minus.0 == 0 {
-                        write!(f, "{value:.v$} {plus:+.t$}/-{minus:.t$}")
+                    let m = if minus.is_zero() { "-" } else { "" };
+                    if f.alternate() {
+                        write!(f, "{value:#.v$} {plus:+#.t$}/{m}{minus:+#.t$}")
                     } else {
-                        write!(f, "{value:.v$} {plus:+.t$}/{minus:+.t$}")
+                        write!(f, "{value:.v$} {plus:+.t$}/{m}{minus:+.t$}")
                     }
-
                 }
             }
         }
 
         impl Debug for $Self {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                write!(f, "{}({} {:+} {:+})", stringify!($Self), self.value, self.plus, self.minus)
+                let $Self{value, plus, minus} = self;
+                write!(f, "{}({value} {plus:+} {minus:+})", stringify!($Self))
             }
         }
 
@@ -380,36 +386,60 @@ macro_rules! tolerance_body {
                         plus: $tol::ZERO,
                         minus: $tol::ZERO,
                     }),
-                    _ => Err(ParseError(format!("{} not parseble from '{triple:?}'", stringify!($Self)))),
+                    _ => Err(ParseError(format!("{} not parsable from '{triple:?}'", stringify!($Self)))),
                 }
             }
         }
 
+        #[doc = concat!("This function is an alias of the [FromStr](#impl-FromStr-for-",
+            stringify!($Self), ")-trait implementation.")]
         impl TryFrom<&str> for $Self {
             type Error = error::ToleranceError;
 
             fn try_from(text : &str) -> Result<Self, Self::Error> {
-                let s = text.replace("+/-", " ").replace("+-", " ").replace('/', " ");
-                let parts: Vec<Result<i64, Self::Error>> = s.split_whitespace().map(| part | {
-                    crate::try_from_str(part, &stringify!($Self))
-                }).collect();
-                if parts.iter().find(|r| r.is_err()).is_some() {
-                    return Err(ParseError(format!("{} not parseble from '{text}'!", stringify!($Self))))
-                };
-                if parts.is_empty() {
-                    return Err(ParseError(format!("Cannot parse an empty string into a {}!", stringify!($Self))))
-                }
-                let mut parts = parts.into_iter().map(Result::unwrap);
-                $Self::try_from((parts.next(), parts.next(), parts.next()))
+                $Self::from_str(text)
             }
         }
 
+        #[doc = concat!("This function is an alias of the [FromStr](#impl-FromStr-for-",
+            stringify!($Self), ")-trait implementation.")]
         impl TryFrom<String> for $Self {
             type Error = error::ToleranceError;
 
             fn try_from(value: String) -> Result<Self, Self::Error> {
-                Self::try_from(value.as_str())
+                $Self::from_str(value.as_str())
             }
+        }
+
+        #[doc = concat!("Converts a string into a ", stringify!($Self))]
+        ///
+        /// ### Input-interpretation:
+        ///
+        /// * Values are interpreted as *mm* — the point and decimal places can be omitted. (`140` => `140.0000`)
+        /// * A leading zero can be omitted. (`.04` => `0.0400`)
+        /// * Possible divider between the 3 parts are `' '` (blank #32), `/` or `;`.
+        /// * 3 parts  =>  value, plus, minus
+        /// * 2 parts  =>  value, plus, -plus
+        /// * 1 part   =>  value, 0.0, 0.0
+        ///
+        impl FromStr for $Self {
+            type Err = error::ToleranceError;
+
+                // Required method
+                fn from_str(text: &str) -> Result<Self, Self::Err> {
+                    let s = text.replace("+/-", " ").replace("+-", " ").replace('/', " ").replace(';', " ");
+                    let parts: Vec<Result<i64, Self::Err>> = s.split_whitespace().map(| part | {
+                        crate::try_from_str(part, &stringify!($Self))
+                    }).collect();
+                    if parts.iter().find(|r| r.is_err()).is_some() {
+                        return Err(ParseError(format!("{} not parsable from '{text}'!", stringify!($Self))))
+                    };
+                    if parts.is_empty() {
+                        return Err(ParseError(format!("Can not parse an empty string into a {}!", stringify!($Self))))
+                    }
+                    let mut parts = parts.into_iter().map(Result::unwrap);
+                    $Self::try_from((parts.next(), parts.next(), parts.next()))
+                }
         }
 
         impl TryFrom<(Option<&i32>, Option<&i32>, Option<&i32>)> for $Self {
@@ -420,7 +450,7 @@ macro_rules! tolerance_body {
                     (Some(&v), Some(&p), Some(&m)) => Ok($Self::new(v, p, m)),
                     (Some(&v), Some(&p), None) => Ok($Self::new(v, p, -p)),
                     (Some(&v), None, None) => Ok($Self::new(v, 0, 0)),
-                    _ => Err(ParseError(format!("{} not parseble from '{triple:?}'!", stringify!($Self)))),
+                    _ => Err(ParseError(format!("{} not parsable from '{triple:?}'!", stringify!($Self)))),
                 }
             }
         }
@@ -448,7 +478,7 @@ macro_rules! tolerance_body {
                         plus: $tol::ZERO,
                         minus: $tol::ZERO,
                     }),
-                    _ => Err(ParseError(format!("{} not parseble from '{triple:?}'!", stringify!($Self)))),
+                    _ => Err(ParseError(format!("{} not parsable from '{triple:?}'!", stringify!($Self)))),
                 }
             }
         }

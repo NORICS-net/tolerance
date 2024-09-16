@@ -130,8 +130,11 @@ macro_rules! standard_myths {
 
         impl $Self {
 
+            /// The neutral element in relation to multiplication and division.
             pub const ONE: $Self = $Self(10_000);
+            /// The neutral element in relation to addition and subtraction.
             pub const ZERO: $Self = $Self(0);
+
             pub const MIN: $Self = $Self($typ::MIN);
             pub const MAX: $Self = $Self($typ::MAX);
 
@@ -178,7 +181,7 @@ macro_rules! standard_myths {
                 }
             }
 
-            /// Finds the nearest integer less than or equal to x at the given `Unit`.
+            /// Finds the nearest value less than or equal to an integer multiple of the given `Unit`.
             pub fn floor(&self, unit: Unit) -> Self {
                 let val = self.0;
                 let m = $typ::try_from(*unit).expect("Unit.multiply to big.");
@@ -203,7 +206,7 @@ macro_rules! standard_myths {
                 Self(self.0 - other.0).abs()
             }
 
-            /// Returns a number representing sign of self.
+            #[doc = concat!("Returns a ", stringify!($Self) ," representing the sign of self.")]
             ///
             ///   *  0 if the number is zero
             ///   *  1 if the number is positive
@@ -218,18 +221,23 @@ macro_rules! standard_myths {
                 }
             }
 
-            /// Returns `true` if `self` is negative and `false` if the number is zero or positive.
+            /// Returns `true` if `self` is negative and `false` if zero or positive.
             #[must_use]
             pub const fn is_negative(&self) -> bool {
                 self.0 < 0
             }
 
-            /// Returns `true` if `self` is positive and `false` if the number is zero or negative.
+            /// Returns `true` if `self` is positive and `false` if zero or negative.
             #[must_use]
             pub const fn is_positive(&self) -> bool {
                 self.0 > 0
             }
 
+            /// Returns `true` if `self` is zero.
+            #[must_use]
+            pub const fn is_zero(&self) -> bool {
+                self.0 == 0
+            }
         }
 
         impl Debug for $Self {
@@ -265,10 +273,7 @@ macro_rules! standard_myths {
             type Error = ToleranceError;
 
             fn try_from(value: &str) -> Result<Self, Self::Error> {
-                crate::try_from_str(value.trim(), &stringify!($Self))
-                    .and_then(|i| Self::try_from(i).
-                        map_err(|_| ToleranceError::Overflow(format!("{value} is to big for {}", stringify!($Self))))
-                    )
+                $Self::from_str(value)
             }
         }
 
@@ -276,10 +281,7 @@ macro_rules! standard_myths {
             type Error = ToleranceError;
 
             fn try_from(value: String) -> Result<Self, Self::Error> {
-                crate::try_from_str(value.trim(), &stringify!($Self) )
-                .and_then(|i| Self::try_from(i).
-                    map_err(|_| ToleranceError::Overflow(format!("{value} is to big for {}", stringify!($Self))))
-                )
+                $Self::from_str(value.as_str())
             }
         }
 
@@ -289,11 +291,12 @@ macro_rules! standard_myths {
             fn from_str(value: &str) -> Result<Self, Self::Err> {
                 crate::try_from_str(value.trim(), &stringify!($Self))
                 .and_then(|i| Self::try_from(i).
-                    map_err(|_| ToleranceError::Overflow(format!("{value} is to big for this type")))
+                    map_err(|_| ToleranceError::Overflow(format!("{value} is to big for {}", stringify!($Self))))
                 )
             }
         }
 
+        #[allow(clippy::cast_possible_truncation)]
         impl From<f64> for $Self {
             fn from(f: f64) -> Self {
                 assert!(
