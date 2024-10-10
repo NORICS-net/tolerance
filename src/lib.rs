@@ -51,6 +51,11 @@ pub(crate) fn try_from_str(value: &str, t_type: &str) -> Result<i64, ToleranceEr
     if c == b'-' || c == b'+' {
         base = &base[1..];
     }
+    if base.is_empty() && fraction == "0" {
+        return Err(ToleranceError::ParseError(format!(
+            "Not a valid Number: '{value}'"
+        )));
+    }
     let fraction = fraction.to_string() + "00000";
     let fraction = fraction.split_at(4).0.as_bytes();
     Ok((str2int(base, t_type)? * Unit::MM + str2int(fraction, t_type)?) * sign)

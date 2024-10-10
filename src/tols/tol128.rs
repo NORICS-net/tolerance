@@ -4,7 +4,7 @@ use std::cmp::Ordering;
 use std::convert::TryFrom;
 use std::fmt::Debug;
 use std::iter::Sum;
-use std::ops::{Add, AddAssign, Mul, Neg, Not, Sub};
+use std::ops::{Add, AddAssign, Mul, Neg, Not, Sub, SubAssign};
 use std::str::FromStr;
 
 use crate::error::ToleranceError::ParseError;
@@ -61,7 +61,7 @@ super::multiply_tolerance!(T128, u64, u32, u16, u8, i64, i32);
 #[cfg(test)]
 mod should {
     use super::T128;
-    use crate::error::ToleranceError;
+    use crate::{error::ToleranceError, Myth32, Myth64};
     use pretty_assertions::assert_eq;
     use std::convert::TryFrom;
 
@@ -113,6 +113,29 @@ mod should {
         let t1 = T128::from((-53.0, 3.0, -3.0));
         assert_eq!("-53.0 +/-3.00", format!("{t1:.1}"));
         assert_eq!(Ok(t1), T128::try_from(format!("{t1:.1}")));
+    }
+
+    #[test]
+    fn serialize_to_u8_array() {
+        let test = T128::from((1234567890, 123455, -124555));
+        let max = T128 {
+            value: Myth64::MAX,
+            plus: Myth32::MAX,
+            minus: Myth32::MIN,
+        };
+        assert_eq!(
+            format!("{:?}", test.to_be_bytes()),
+            "[0, 0, 0, 0, 73, 150, 2, 210, 0, 1, 226, 63, 255, 254, 25, 117]"
+        );
+        assert_eq!(test, T128::from_be_bytes(test.to_be_bytes()));
+        assert_eq!(max, T128::from_be_bytes(max.to_be_bytes()));
+
+        assert_eq!(
+            format!("{:?}", test.to_le_bytes()),
+            "[210, 2, 150, 73, 0, 0, 0, 0, 63, 226, 1, 0, 117, 25, 254, 255]"
+        );
+        assert_eq!(test, T128::from_le_bytes(test.to_le_bytes()));
+        assert_eq!(max, T128::from_le_bytes(max.to_le_bytes()));
     }
 
     #[test]

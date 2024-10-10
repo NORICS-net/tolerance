@@ -106,13 +106,13 @@ mod should {
 
         let d = Myth64::try_from("   ");
         assert!(d.is_err());
-        /*
+
         let d = Myth64::try_from(" -  ");
         assert!(d.is_err());
 
         let d = Myth64::try_from("+");
         assert!(d.is_err());
-        */
+
         let m = Myth64::from(5445.234);
         let m_s = m.to_string();
         assert_eq!("5445.2340", m_s);

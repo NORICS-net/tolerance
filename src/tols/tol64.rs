@@ -4,7 +4,7 @@ use std::cmp::Ordering;
 use std::convert::TryFrom;
 use std::fmt::Debug;
 use std::iter::Sum;
-use std::ops::{Add, AddAssign, Mul, Neg, Not, Sub};
+use std::ops::{Add, AddAssign, Mul, Neg, Not, Sub, SubAssign};
 use std::str::FromStr;
 
 use crate::error::ToleranceError::ParseError;

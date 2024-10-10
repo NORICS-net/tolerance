@@ -21,6 +21,8 @@ pub(crate) use multiply_tolerance;
 
 macro_rules! tolerance_body {
     ($Self:ident, $value:ident, $tol:ident) => {
+        const PPOS : usize = std::mem::size_of::<$value>();
+        const MPOS : usize = std::mem::size_of::<$value>() + std::mem::size_of::<$tol>();
 
         impl $Self {
             /// The neutral element in relation to addition and subtraction
@@ -104,6 +106,69 @@ macro_rules! tolerance_body {
                     value: -self.value,
                     plus: -self.minus,
                     minus: -self.plus,
+                }
+            }
+
+            #[doc = concat!("Return the memory representation of this ", stringify!($Self), " as a byte array in")]
+            /// big-endian (network) byte order.
+            #[must_use]
+            pub fn to_be_bytes(&self) -> [u8; std::mem::size_of::<$Self>()] {
+                let mut buffer = [0u8; std::mem::size_of::<$Self>()];
+                buffer[..PPOS].clone_from_slice(&$value::to_be_bytes(&self.value));
+                buffer[PPOS..MPOS].clone_from_slice(&$tol::to_be_bytes(&self.plus));
+                buffer[MPOS..].clone_from_slice(&$tol::to_be_bytes(&self.minus));
+                buffer
+            }
+
+            #[doc = concat!("Create a ", stringify!($Self), " value from its representation")]
+            /// as a byte array in big-endian.
+            pub fn from_be_bytes(bytes: [u8; std::mem::size_of::<$Self>()]) -> Self {
+                Self {
+                    value: $value::from_be_bytes(bytes[..PPOS].try_into().expect("Slice has the wrong length")),
+                    plus: $tol::from_be_bytes(bytes[PPOS..MPOS].try_into().expect("Slice has the wrong length")),
+                    minus: $tol::from_be_bytes(bytes[MPOS..].try_into().expect("Slice has the wrong length")),
+                }
+            }
+
+            #[doc = concat!("Return the memory representation of this ", stringify!($Self), " as a byte array in")]
+            /// little-endian byte order.
+            #[must_use]
+            pub fn to_le_bytes(&self) -> [u8; std::mem::size_of::<$Self>()] {
+                let mut buffer = [0u8; std::mem::size_of::<$Self>()];
+                buffer[..PPOS].clone_from_slice(&$value::to_le_bytes(&self.value));
+                buffer[PPOS..MPOS].clone_from_slice(&$tol::to_le_bytes(&self.plus));
+                buffer[MPOS..].clone_from_slice(&$tol::to_le_bytes(&self.minus));
+                buffer
+            }
+
+            #[doc = concat!("Create a ", stringify!($Self), " value from its representation")]
+            /// as a byte array in little-endian.
+            pub fn from_le_bytes(bytes: [u8; std::mem::size_of::<$Self>()]) -> Self {
+                Self {
+                    value: $value::from_le_bytes(bytes[..PPOS].try_into().expect("Slice has the wrong length")),
+                    plus: $tol::from_le_bytes(bytes[PPOS..MPOS].try_into().expect("Slice has the wrong length")),
+                    minus: $tol::from_le_bytes(bytes[MPOS..].try_into().expect("Slice has the wrong length")),
+                }
+            }
+
+            #[doc = concat!("Return the memory representation of this ", stringify!($Self), " as a byte array in")]
+            /// native byte order.
+            #[must_use]
+            pub fn to_ne_bytes(&self) -> [u8; std::mem::size_of::<$Self>()] {
+                let mut buffer = [0u8; std::mem::size_of::<$Self>()];
+                buffer[..PPOS].clone_from_slice(&$value::to_ne_bytes(&self.value));
+                buffer[PPOS..MPOS].clone_from_slice(&$tol::to_ne_bytes(&self.plus));
+                buffer[MPOS..].clone_from_slice(&$tol::to_ne_bytes(&self.minus));
+                buffer
+            }
+
+            #[doc = concat!("Create a ", stringify!($Self), " value from its representation")]
+            /// as a byte array in native byte order.
+            pub fn from_ne_bytes(bytes: [u8; std::mem::size_of::<$Self>()]) -> Self {
+                Self {
+                    value: $value::from_ne_bytes(bytes[..PPOS].try_into().expect("Slice has the wrong length")),
+                    plus: $tol::from_ne_bytes(bytes[PPOS..MPOS].try_into().expect("Slice has the wrong length")),
+                    minus: $tol::from_ne_bytes(bytes[MPOS..].try_into().expect("Slice has the wrong length")),
                 }
             }
         }
@@ -190,11 +255,35 @@ macro_rules! tolerance_body {
             }
         }
 
+        impl Add<$tol> for $Self {
+            type Output = $Self;
+
+            fn add(self, other: $tol) -> $Self {
+                $Self {
+                    value: self.value + other,
+                    plus: self.plus,
+                    minus: self.minus,
+                }
+            }
+        }
+
         impl AddAssign for $Self {
             fn add_assign(&mut self, other: Self) {
                 self.value += other.value;
                 self.plus += other.plus;
                 self.minus += other.minus;
+            }
+        }
+
+        impl AddAssign<$value> for $Self   {
+            fn add_assign(&mut self, other: $value) {
+                self.value += other;
+            }
+        }
+
+        impl AddAssign<$tol> for $Self   {
+            fn add_assign(&mut self, other: $tol) {
+                self.value += $value::from(other);
             }
         }
 
@@ -246,6 +335,38 @@ macro_rules! tolerance_body {
                     plus: self.plus,
                     minus: self.minus,
                 }
+            }
+        }
+
+        impl Sub<$tol> for $Self {
+            type Output = $Self;
+
+            fn sub(self, other: $tol) -> $Self {
+                $Self {
+                    value: self.value - other,
+                    plus: self.plus,
+                    minus: self.minus,
+                }
+            }
+        }
+
+        impl SubAssign for $Self {
+            fn sub_assign(&mut self, other: Self) {
+                self.value -= other.value;
+                self.plus -= other.plus;
+                self.minus -= other.minus;
+            }
+        }
+
+        impl SubAssign<$value> for $Self   {
+            fn sub_assign(&mut self, other: $value) {
+                self.value -= other;
+            }
+        }
+
+        impl SubAssign<$tol> for $Self   {
+            fn sub_assign(&mut self, other: $tol) {
+                self.value -= $value::from(other);
             }
         }
 
