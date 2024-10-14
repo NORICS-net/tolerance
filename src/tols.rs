@@ -409,11 +409,11 @@ macro_rules! tolerance_body {
                 if plus == -minus && !f.alternate() && !plus.is_negative() {
                     write!(f, "{value:.v$} +/-{plus:.t$}")
                 } else {
-                    let m = if minus.is_zero() { "-" } else { "" };
+                    let m = if minus.0 > 0 { "+" } else if minus.0 == 0 { "-" } else { "" };
                     if f.alternate() {
-                        write!(f, "{value:#.v$} {plus:+#.t$}/{m}{minus:+#.t$}")
+                        write!(f, "{value:#.v$} {plus:+#.t$}/{m}{minus:#.t$}")
                     } else {
-                        write!(f, "{value:.v$} {plus:+.t$}/{m}{minus:+.t$}")
+                        write!(f, "{value:.v$} {plus:+.t$}/{m}{minus:.t$}")
                     }
                 }
             }

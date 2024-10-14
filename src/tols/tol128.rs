@@ -113,6 +113,9 @@ mod should {
         let t1 = T128::from((-53.0, 3.0, -3.0));
         assert_eq!("-53.0 +/-3.00", format!("{t1:.1}"));
         assert_eq!(Ok(t1), T128::try_from(format!("{t1:.1}")));
+
+        let a = T128::new(363_000, 10_000, 0);
+        assert_eq!(a, T128::try_from(a.to_string()).unwrap());
     }
 
     #[test]
@@ -164,6 +167,24 @@ mod should {
         assert!(simple > 29.0565.into());
         assert!(simple <= 30.00.into());
         assert!(simple >= 30.0.into());
+    }
+
+    #[test]
+    fn display_compact() {
+        let o = T128::new(20_000, 50, -100);
+        assert_eq!(format!("{o}"), String::from("2.00 +0.005/-0.010"));
+        let o = T128::new(20_000, 50, -50);
+        assert_eq!(format!("{o}"), String::from("2.00 +/-0.005"));
+        let o = T128::new(20_000, 0, 0);
+        assert_eq!(format!("{o}"), String::from("2.00 +/-0.000"));
+        let o = T128::new(20_000, 50, 0);
+        assert_eq!(format!("{o}"), String::from("2.00 +0.005/-0.000"));
+        let o = T128::new(20_000, 0, -400);
+        assert_eq!(format!("{o}"), String::from("2.00 +0.000/-0.040"));
+        let o = T128::new(20_000, 800, 400);
+        assert_eq!(format!("{o}"), String::from("2.00 +0.080/+0.040"));
+        let o = T128::new(20_000, -400, -800);
+        assert_eq!(format!("{o}"), String::from("2.00 -0.040/-0.080"));
     }
 
     #[test]
