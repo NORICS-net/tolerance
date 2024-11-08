@@ -28,12 +28,31 @@ use crate::{error, Myth16, Myth32};
 ///
 /// The `plus` and `minus` tolerances are in the same scale unit as the `value`.
 /// `plus` is signed positive (`+`) and `minus` is signed negative (`-`).
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[cfg_attr(
+    feature = "serde",
+    derive(Deserialize, Serialize),
+    doc = include_str!("serde.md")
+)]
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 #[must_use]
 pub struct T64 {
+    #[cfg_attr(
+        feature = "serde",
+        serde(alias = "v"),
+        doc = "Can be named `value` or `v` for deserialization."
+    )]
     pub value: Myth32,
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, alias = "p"),
+        doc = "Can be named `plus` or `p` for deserialization."
+    )]
     pub plus: Myth16,
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, alias = "m"),
+        doc = "Can be named `minus` or `m` for deserialization."
+    )]
     pub minus: Myth16,
 }
 

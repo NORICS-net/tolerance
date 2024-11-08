@@ -46,12 +46,31 @@ use crate::{error, Myth32, Myth64};
 /// assert_eq!(T128::try_from("12.0"), Ok(T128::from(12.0)));
 /// ```
 ///
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[cfg_attr(
+    feature = "serde",
+    derive(Deserialize, Serialize),
+    doc = include_str!("serde.md")
+)]
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 #[must_use]
 pub struct T128 {
+    #[cfg_attr(
+        feature = "serde",
+        serde(alias = "v"),
+        doc = "Can be named `value` or `v` for deserialization."
+    )]
     pub value: Myth64,
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, alias = "p"),
+        doc = "Can be named `plus` or `p` for deserialization."
+    )]
     pub plus: Myth32,
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, alias = "m"),
+        doc = "Can be named `minus` or `m` for deserialization."
+    )]
     pub minus: Myth32,
 }
 
@@ -254,7 +273,7 @@ mod should {
     #[cfg(feature = "serde")]
     mod serde {
         use crate::T128;
-        use serde_test::{assert_tokens, Token};
+        use serde_test::{assert_de_tokens, assert_tokens, Token};
 
         #[test]
         fn serialize() {
@@ -276,6 +295,65 @@ mod should {
                     Token::Str("minus"),
                     Token::NewtypeStruct { name: "Myth32" },
                     Token::I32(0),
+                    Token::StructEnd,
+                ],
+            );
+        }
+
+        #[test]
+        fn deserialize() {
+            let tol = T128::from(1230000);
+            // Full
+            assert_de_tokens(
+                &tol,
+                &[
+                    Token::Struct {
+                        name: "T128",
+                        len: 3,
+                    },
+                    Token::Str("value"),
+                    Token::NewtypeStruct { name: "Myth64" },
+                    Token::I64(1230000),
+                    Token::Str("plus"),
+                    Token::NewtypeStruct { name: "Myth32" },
+                    Token::I32(0),
+                    Token::Str("minus"),
+                    Token::NewtypeStruct { name: "Myth32" },
+                    Token::I32(0),
+                    Token::StructEnd,
+                ],
+            );
+            // aliasse
+            assert_de_tokens(
+                &tol,
+                &[
+                    Token::Struct {
+                        name: "T128",
+                        len: 3,
+                    },
+                    Token::Str("v"),
+                    Token::NewtypeStruct { name: "Myth64" },
+                    Token::I64(1230000),
+                    Token::Str("p"),
+                    Token::NewtypeStruct { name: "Myth32" },
+                    Token::I32(0),
+                    Token::Str("m"),
+                    Token::NewtypeStruct { name: "Myth32" },
+                    Token::I32(0),
+                    Token::StructEnd,
+                ],
+            );
+            // defaults
+            assert_de_tokens(
+                &tol,
+                &[
+                    Token::Struct {
+                        name: "T128",
+                        len: 1,
+                    },
+                    Token::Str("v"),
+                    Token::NewtypeStruct { name: "Myth64" },
+                    Token::I64(1230000),
                     Token::StructEnd,
                 ],
             );

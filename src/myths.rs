@@ -341,7 +341,7 @@ macro_rules! standard_myths {
             fn from(f: f64) -> Self {
                 assert!(
                     f < $typ::MAX as f64 && f > $typ::MIN as f64,
-                    "{} overflow, the f64 is beyond the limits of this type ({}).",
+                    "{} overflow, the f64 '{f:?}' is beyond the limits of this type ({}).",
                     stringify!($typ),
                     stringify!($Self),
                 );
