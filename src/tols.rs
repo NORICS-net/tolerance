@@ -109,7 +109,7 @@ macro_rules! tolerance_body {
                 }
             }
 
-            #[doc = concat!("Return the memory representation of this ", stringify!($Self), " as a byte array in")]
+            #[doc = concat!("Returns the memory representation of this ", stringify!($Self), " as a byte array in")]
             /// big-endian (network) byte order.
             #[must_use]
             pub fn to_be_bytes(&self) -> [u8; std::mem::size_of::<$Self>()] {
@@ -120,7 +120,7 @@ macro_rules! tolerance_body {
                 buffer
             }
 
-            #[doc = concat!("Create a ", stringify!($Self), " value from its representation")]
+            #[doc = concat!("Creates a ", stringify!($Self), " value from its representation")]
             /// as a byte array in big-endian.
             pub fn from_be_bytes(bytes: [u8; std::mem::size_of::<$Self>()]) -> Self {
                 Self {
@@ -130,7 +130,7 @@ macro_rules! tolerance_body {
                 }
             }
 
-            #[doc = concat!("Return the memory representation of this ", stringify!($Self), " as a byte array in")]
+            #[doc = concat!("Returns the memory representation of this ", stringify!($Self), " as a byte array in")]
             /// little-endian byte order.
             #[must_use]
             pub fn to_le_bytes(&self) -> [u8; std::mem::size_of::<$Self>()] {
@@ -141,7 +141,7 @@ macro_rules! tolerance_body {
                 buffer
             }
 
-            #[doc = concat!("Create a ", stringify!($Self), " value from its representation")]
+            #[doc = concat!("Creates a ", stringify!($Self), " value from its representation")]
             /// as a byte array in little-endian.
             pub fn from_le_bytes(bytes: [u8; std::mem::size_of::<$Self>()]) -> Self {
                 Self {
@@ -151,7 +151,7 @@ macro_rules! tolerance_body {
                 }
             }
 
-            #[doc = concat!("Return the memory representation of this ", stringify!($Self), " as a byte array in")]
+            #[doc = concat!("Returns the memory representation of this ", stringify!($Self), " as a byte array in")]
             /// native byte order.
             #[must_use]
             pub fn to_ne_bytes(&self) -> [u8; std::mem::size_of::<$Self>()] {
@@ -162,7 +162,7 @@ macro_rules! tolerance_body {
                 buffer
             }
 
-            #[doc = concat!("Create a ", stringify!($Self), " value from its representation")]
+            #[doc = concat!("Creates a ", stringify!($Self), " value from its representation")]
             /// as a byte array in native byte order.
             pub fn from_ne_bytes(bytes: [u8; std::mem::size_of::<$Self>()]) -> Self {
                 Self {
@@ -532,7 +532,7 @@ macro_rules! tolerance_body {
             }
         }
 
-        #[doc = concat!("Converts a string into a ", stringify!($Self))]
+        #[doc = concat!("Converts a string into a ", stringify!($Self), ".")]
         ///
         /// ### Input-interpretation:
         ///

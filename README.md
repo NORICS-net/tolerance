@@ -37,7 +37,10 @@ assert_eq!(!width1, T128::new(-100.0, 0.2, -0.05));
 assert_eq!(width1 + !width1, T128::new(0.0, 0.25, -0.25));
 ```
 
-### History
+## Serde
+Serde-support can be activated by the `serde`-feature.
+
+## History
 
 Started as [AllowanceValue](https://github.com/migmedia/allowance) renamed and moved for better usability.
 
@@ -46,7 +49,7 @@ Started as [AllowanceValue](https://github.com/migmedia/allowance) renamed and m
 Licensed under  MIT license ([LICENSE-MIT](https://github.com/NORICS-net/tolerance/blob/main/LICENSE) or
 <https://opensource.org/licenses/MIT>)
 
-### Contribution
+## Contribution
 
 Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in the work by you, as defined in the MIT license, shall be licensed as above,

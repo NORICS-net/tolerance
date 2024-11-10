@@ -39,19 +39,19 @@ pub struct T64 {
     #[cfg_attr(
         feature = "serde",
         serde(alias = "v"),
-        doc = "Can be named `value` or `v` for deserialization."
+        doc = "In deserialization `value` or `v` is used."
     )]
     pub value: Myth32,
     #[cfg_attr(
         feature = "serde",
         serde(default, alias = "p"),
-        doc = "Can be named `plus` or `p` for deserialization."
+        doc = "In deserialization `plus` or `p` is used."
     )]
     pub plus: Myth16,
     #[cfg_attr(
         feature = "serde",
         serde(default, alias = "m"),
-        doc = "Can be named `minus` or `m` for deserialization."
+        doc = "In deserialization `minus` or `m` is used."
     )]
     pub minus: Myth16,
 }
