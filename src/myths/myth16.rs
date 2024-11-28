@@ -35,8 +35,9 @@ use std::str::FromStr;
 ///#    use tolerance::Myth16;
 ///     let myth = Myth16::from(1.5);
 ///
-///     assert_eq!(format!("{myth}"),"1.5000");
+///     assert_eq!(format!("{myth}"), "1.5");
 ///     assert_eq!(format!("{myth:.2}"), "1.50");
+///     assert_eq!(format!("{myth:.4}"),"1.5000");
 ///     assert_eq!(format!("{myth:#}"), "15000");
 /// ```
 
@@ -124,7 +125,8 @@ mod should {
         assert_eq!("-1.2455", format!("{:.7}", -m).as_str());
         let m = Myth16(-455);
         assert_eq!("-0.0455", format!("{m}").as_str());
-        assert_eq!("-0.3450", format!("{}", Myth16(-3450)).as_str());
+        assert_eq!("-0.345", format!("{}", Myth16(-3450)).as_str());
+        assert_eq!("-0.3450", format!("{:.4}", Myth16(-3450)).as_str());
         assert_eq!("-455", format!("{m:#}").as_str());
         let m = Myth16::from(1.4689);
         assert_eq!(format!("{m:.3}"), "1.469");

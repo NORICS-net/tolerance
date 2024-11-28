@@ -1,8 +1,3 @@
-#[cfg(feature = "serde")]
-use serde::{
-    de::{MapAccess, Visitor},
-    Deserialize, Deserializer, Serialize,
-};
 use std::cmp::Ordering;
 use std::convert::TryFrom;
 use std::fmt::Debug;
@@ -25,37 +20,24 @@ use crate::{error, Myth16, Myth32};
 /// # use tolerance::T64;
 /// let width = T64::new(100.0, 0.05, -0.2);
 ///
-/// assert_eq!(format!("{width}"), "100.00 +0.050/-0.200");
-/// assert_eq!(format!("{width:?}"), "T64(100.0000 +0.0500 -0.2000)");
+/// assert_eq!(format!("{width}"), "100.0 +0.05/-0.2");
+/// assert_eq!(format!("{width:?}"), "T64(100.0 +0.05 -0.2)");
 /// ```
 ///
 /// The `plus` and `minus` tolerances are in the same scale unit as the `value`.
 /// `plus` is signed positive (`+`) and `minus` is signed negative (`-`).
 #[cfg_attr(
     feature = "serde",
-    derive(Serialize),
     doc = include_str!("serde.md")
 )]
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 #[must_use]
 pub struct T64 {
-    #[cfg_attr(
-        feature = "serde",
-        serde(alias = "v"),
-        doc = "In deserialization `value` or `v` is used."
-    )]
+    #[cfg_attr(feature = "serde", doc = "In deserialization `value` or `v` is used.")]
     pub value: Myth32,
-    #[cfg_attr(
-        feature = "serde",
-        serde(default, alias = "p"),
-        doc = "In deserialization `plus` or `p` is used."
-    )]
+    #[cfg_attr(feature = "serde", doc = "In deserialization `plus` or `p` is used.")]
     pub plus: Myth16,
-    #[cfg_attr(
-        feature = "serde",
-        serde(default, alias = "m"),
-        doc = "In deserialization `minus` or `m` is used."
-    )]
+    #[cfg_attr(feature = "serde", doc = "In deserialization `minus` or `m` is used.")]
     pub minus: Myth16,
 }
 
@@ -69,6 +51,7 @@ mod should {
     use super::T64;
     use crate::error::ToleranceError;
     use pretty_assertions::assert_eq;
+    use serde::Deserialize;
     use std::convert::TryFrom;
 
     #[test]
@@ -111,14 +94,14 @@ mod should {
     #[test]
     fn display_is_adjustable() {
         let o = T64::new(20_000, 50, -100);
-        assert_eq!(format!("{o}"), String::from("2.00 +0.005/-0.010"));
+        assert_eq!(format!("{o}"), String::from("2.0 +0.005/-0.01"));
         assert_eq!(format!("{o:.3}"), "2.000 +0.0050/-0.0100".to_string());
         assert_eq!(format!("{o:.4}"), "2.0000 +0.0050/-0.0100".to_string());
         assert_eq!(format!("{o:.0}"), String::from("2 +/-0.0"));
         assert_eq!(format!("{o:.1}"), String::from("2.0 +/-0.01"));
 
         let o = T64::with_sym(20_000, 50);
-        assert_eq!(format!("{o}"), String::from("2.00 +/-0.005"));
+        assert_eq!(format!("{o}"), String::from("2.0 +/-0.005"));
         assert_eq!(format!("{o:.0}"), String::from("2 +/-0.0"));
 
         let o = T64::new(0.345, 0.010, -0.014);
@@ -130,14 +113,14 @@ mod should {
 
         assert_eq!(
             format!("{o:.3?}"),
-            String::from("T64(-0.3500 +0.0100 -0.0140)")
+            String::from("T64(-0.350 +0.010 -0.014)")
         );
     }
 
     #[test]
     fn construct_consistent() {
         let o = T64::from((2.0, 0.005, -0.01));
-        assert_eq!(o.to_string(), "2.00 +0.005/-0.010".to_string())
+        assert_eq!(o.to_string(), "2.0 +0.005/-0.01".to_string())
     }
 
     #[test]
@@ -174,5 +157,52 @@ mod should {
             a.unwrap_err(),
             ParseError(String::from("Can not parse an empty string into a T64!"))
         );
+    }
+
+    #[test]
+    fn serialize_string() {
+        use crate::{tol_string, T64};
+        use serde::Serialize;
+
+        #[derive(Serialize, Deserialize, PartialEq, Debug)]
+        struct T1 {
+            width: T64,
+        }
+        let t = T1 {
+            width: T64::from(123455),
+        };
+        let json = serde_json::to_string(&t).unwrap();
+        assert_eq!(r#"{"width":{"value":123455,"plus":0,"minus":0}}"#, json);
+        let t2: T1 = serde_json::from_str(&json).unwrap();
+        assert_eq!(t2, t);
+
+        #[derive(Serialize, Deserialize, PartialEq, Debug)]
+        struct T2 {
+            #[serde(serialize_with = "tol_string")]
+            width: T64,
+        }
+        let t = T2 {
+            width: T64::from(123460),
+        };
+        let json = serde_json::to_string(&t).unwrap();
+        assert_eq!(r#"{"width":"12.346 +/-0.0"}"#, json);
+        let t2: T2 = serde_json::from_str(&json).unwrap();
+        assert_eq!(t2, t);
+
+        let t = T2 {
+            width: T64::new(123.4, 0.5, -0.5),
+        };
+        let json = serde_json::to_string(&t).unwrap();
+        assert_eq!(r#"{"width":"123.4 +/-0.5"}"#, json);
+        let t2: T2 = serde_json::from_str(&json).unwrap();
+        assert_eq!(t2, t);
+
+        let t = T2 {
+            width: T64::new(123.4, 0.5, -0.3),
+        };
+        let json = serde_json::to_string(&t).unwrap();
+        assert_eq!(r#"{"width":"123.4 +0.5/-0.3"}"#, json);
+        let t2: T2 = serde_json::from_str(&json).unwrap();
+        assert_eq!(t2, t);
     }
 }

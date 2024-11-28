@@ -407,13 +407,21 @@ macro_rules! tolerance_body {
                 let minus = self.minus.round(tol_round);
                 let value = self.value;
                 if plus == -minus && !f.alternate() && !plus.is_negative() {
-                    write!(f, "{value:.v$} +/-{plus:.t$}")
+                    if f.precision().is_some() {
+                        write!(f, "{value:.v$} +/-{plus:.t$}")
+                    } else {
+                        write!(f, "{value} +/-{plus}")
+                    }
                 } else {
                     let m = if minus.0 > 0 { "+" } else if minus.0 == 0 { "-" } else { "" };
                     if f.alternate() {
                         write!(f, "{value:#.v$} {plus:+#.t$}/{m}{minus:#.t$}")
                     } else {
+                        if f.precision().is_some() {
                         write!(f, "{value:.v$} {plus:+.t$}/{m}{minus:.t$}")
+                        } else {
+                            write!(f, "{value} {plus:+}/{m}{minus}")
+                        }
                     }
                 }
             }
@@ -422,7 +430,11 @@ macro_rules! tolerance_body {
         impl Debug for $Self {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 let $Self{value, plus, minus} = self;
-                write!(f, "{}({value} {plus:+} {minus:+})", stringify!($Self))
+                if let Some(t) = f.precision() {
+                    write!(f, "{}({value:.t$} {plus:+.t$} {minus:+.t$})", stringify!($Self))
+                } else {
+                    write!(f, "{}({value} {plus:+} {minus:+})", stringify!($Self))
+                }
             }
         }
 
@@ -621,6 +633,25 @@ pub(crate) use tolerance_body;
 #[cfg(feature = "serde")]
 macro_rules! de_serde_tol {
     ($Self:ident, $Val:ident, $Tol:ident) => {
+        use serde::{
+            de::{MapAccess, Visitor},
+            ser::SerializeStruct,
+            Deserialize, Deserializer, Serialize, Serializer,
+        };
+
+        impl Serialize for $Self {
+            fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+                where
+                    S: Serializer,
+                {
+                    let mut state = serializer.serialize_struct(stringify!($Self), 3)?;
+                    state.serialize_field("value", &self.value)?;
+                    state.serialize_field("plus", &self.plus)?;
+                    state.serialize_field("minus", &self.minus)?;
+                    state.end()
+                }
+        }
+
         impl<'de> Deserialize<'de> for $Self {
             fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
             where

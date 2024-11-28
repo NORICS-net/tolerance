@@ -295,7 +295,11 @@ macro_rules! standard_myths {
 
         impl Display for $Self {
             fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-                let p = f.precision().map_or(4, |p| p.min(4));
+                let v = self.0;
+                let p = f.precision().map_or(if v % 1000 == 0 { 1 } else
+                    if v % 100 == 0 { 2 } else
+                    if v % 10 == 0 { 3 } else
+                    { 4 }, |p| p.min(4));
                 assert!(p <= 4, "{} has a limited precision of 4!", stringify!($Self));
                 if f.alternate() {
                     Display::fmt(&self.0, f)

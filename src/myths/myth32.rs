@@ -33,8 +33,9 @@ use std::str::FromStr;
 ///#    use tolerance::Myth32;
 ///     let myth = Myth32::from(12.5);
 ///
-///     assert_eq!(format!("{myth}"),"12.5000");
+///     assert_eq!(format!("{myth}"),"12.5");
 ///     assert_eq!(format!("{myth:.2}"), "12.50");
+///     assert_eq!(format!("{myth:.4}"),"12.5000");
 ///     assert_eq!(format!("{myth:#}"), "125000");
 /// ```
 ///
@@ -120,7 +121,7 @@ mod should {
         assert_eq!("-1.2455", format!("{:.7}", -m).as_str());
         let m = Myth32(-455);
         assert_eq!("-0.0455", format!("{m}").as_str());
-        assert_eq!("-0.3450", format!("{}", Myth32(-3450)).as_str());
+        assert_eq!("-0.345", format!("{}", Myth32(-3450)).as_str());
         assert_eq!("-455", format!("{m:#}").as_str());
         let m = Myth32::from(4566.4689);
         assert_eq!(format!("{m:.3}"), "4566.469");

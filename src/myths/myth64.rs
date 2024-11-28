@@ -25,8 +25,9 @@ use std::str::FromStr;
 ///#    use tolerance::Myth64;
 ///     let myth = Myth64::from(12.5);
 ///
-///     assert_eq!(format!("{myth}"),"12.5000");
+///     assert_eq!(format!("{myth}"),"12.5");
 ///     assert_eq!(format!("{myth:.2}"), "12.50");
+///     assert_eq!(format!("{myth:.4}"),"12.5000");
 ///     assert_eq!(format!("{myth:#}"), "125000");
 /// ```
 ///
@@ -117,7 +118,7 @@ mod should {
 
         let m = Myth64::from(5445.234);
         let m_s = m.to_string();
-        assert_eq!("5445.2340", m_s);
+        assert_eq!("5445.234", m_s);
         assert_eq!(Ok(m), Myth64::try_from(m_s));
     }
 
@@ -164,7 +165,7 @@ mod should {
         assert_eq!("-1.2455", format!("{:.7}", -m).as_str());
         let m = Myth64(-455);
         assert_eq!("-0.046", format!("{m:.3}").as_str());
-        assert_eq!("-0.3450", format!("{}", Myth64(-3450)).as_str());
+        assert_eq!("-0.345", format!("{}", Myth64(-3450)).as_str());
         assert_eq!("-455", format!("{m:#}").as_str());
         let m = Myth64::from(4566.4689);
         assert_eq!(format!("{m:.3}"), "4566.469");

@@ -1,8 +1,3 @@
-#[cfg(feature = "serde")]
-use serde::{
-    de::{MapAccess, Visitor},
-    Deserialize, Deserializer, Serialize,
-};
 use std::cmp::Ordering;
 use std::convert::TryFrom;
 use std::fmt::Debug;
@@ -25,8 +20,9 @@ use crate::{error, Myth32, Myth64};
 /// # use tolerance::T128;
 /// let width = T128::new(100.0, 0.05, -0.2);
 ///
-/// assert_eq!(format!("{width}"), "100.00 +0.050/-0.200");
-/// assert_eq!(format!("{width:?}"), "T128(100.0000 +0.0500 -0.2000)");
+/// assert_eq!(format!("{width}"), "100.0 +0.05/-0.2");
+/// assert_eq!(format!("{width:.3}"), "100.000 +0.0500/-0.2000");
+/// assert_eq!(format!("{width:?}"), "T128(100.0 +0.05 -0.2)");
 /// ```
 ///
 /// The `plus` and `minus` tolerances are in the same scale unit as the `value`.
@@ -51,29 +47,16 @@ use crate::{error, Myth32, Myth64};
 ///
 #[cfg_attr(
     feature = "serde",
-    derive(Serialize),
     doc = include_str!("serde.md")
 )]
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 #[must_use]
 pub struct T128 {
-    #[cfg_attr(
-        feature = "serde",
-        serde(alias = "v"),
-        doc = "In deserialization `value` or `v` is used."
-    )]
+    #[cfg_attr(feature = "serde", doc = "In deserialization `value` or `v` is used.")]
     pub value: Myth64,
-    #[cfg_attr(
-        feature = "serde",
-        serde(default, alias = "p"),
-        doc = "In deserialization `plus` or `p` is used."
-    )]
+    #[cfg_attr(feature = "serde", doc = "In deserialization `plus` or `p` is used.")]
     pub plus: Myth32,
-    #[cfg_attr(
-        feature = "serde",
-        serde(default, alias = "m"),
-        doc = "In deserialization `minus` or `m` is used."
-    )]
+    #[cfg_attr(feature = "serde", doc = "In deserialization `minus` or `m` is used.")]
     pub minus: Myth32,
 }
 
@@ -196,32 +179,32 @@ mod should {
     #[test]
     fn display_compact() {
         let o = T128::new(20_000, 50, -100);
-        assert_eq!(format!("{o}"), String::from("2.00 +0.005/-0.010"));
+        assert_eq!(format!("{o}"), String::from("2.0 +0.005/-0.01"));
         let o = T128::new(20_000, 50, -50);
-        assert_eq!(format!("{o}"), String::from("2.00 +/-0.005"));
+        assert_eq!(format!("{o}"), String::from("2.0 +/-0.005"));
         let o = T128::new(20_000, 0, 0);
-        assert_eq!(format!("{o}"), String::from("2.00 +/-0.000"));
+        assert_eq!(format!("{o}"), String::from("2.0 +/-0.0"));
         let o = T128::new(20_000, 50, 0);
-        assert_eq!(format!("{o}"), String::from("2.00 +0.005/-0.000"));
+        assert_eq!(format!("{o}"), String::from("2.0 +0.005/-0.0"));
         let o = T128::new(20_000, 0, -400);
-        assert_eq!(format!("{o}"), String::from("2.00 +0.000/-0.040"));
+        assert_eq!(format!("{o}"), String::from("2.0 +0.0/-0.04"));
         let o = T128::new(20_000, 800, 400);
-        assert_eq!(format!("{o}"), String::from("2.00 +0.080/+0.040"));
+        assert_eq!(format!("{o}"), String::from("2.0 +0.08/+0.04"));
         let o = T128::new(20_000, -400, -800);
-        assert_eq!(format!("{o}"), String::from("2.00 -0.040/-0.080"));
+        assert_eq!(format!("{o}"), String::from("2.0 -0.04/-0.08"));
     }
 
     #[test]
     fn display_is_adjustable() {
         let o = T128::new(20_000, 50, -100);
-        assert_eq!(format!("{o}"), String::from("2.00 +0.005/-0.010"));
+        assert_eq!(format!("{o}"), String::from("2.0 +0.005/-0.01"));
         assert_eq!(format!("{o:.3}"), "2.000 +0.0050/-0.0100".to_string());
         assert_eq!(format!("{o:.4}"), "2.0000 +0.0050/-0.0100".to_string());
         assert_eq!(format!("{o:.0}"), String::from("2 +/-0.0"));
         assert_eq!(format!("{o:.1}"), String::from("2.0 +/-0.01"));
 
         let o = T128::with_sym(20_000, 50);
-        assert_eq!(format!("{o}"), String::from("2.00 +/-0.005"));
+        assert_eq!(format!("{o}"), String::from("2.0 +/-0.005"));
         assert_eq!(format!("{o:.0}"), String::from("2 +/-0.0"));
 
         let o = T128::new(0.345, 0.010, -0.014);
@@ -231,13 +214,13 @@ mod should {
 
         assert_eq!(format!("{o:#}"), String::from("-3500 +100/-140"));
 
-        assert_eq!("T128(-0.3500 +0.0100 -0.0140)", format!("{o:.3?}"));
+        assert_eq!("T128(-0.350 +0.010 -0.014)", format!("{o:.3?}"));
     }
 
     #[test]
     fn construct_consistent() {
         let o = T128::from((2.0, 0.005, -0.01));
-        assert_eq!(o.to_string(), "2.00 +0.005/-0.010".to_string())
+        assert_eq!(o.to_string(), "2.0 +0.005/-0.01".to_string())
     }
 
     #[test]
@@ -277,8 +260,87 @@ mod should {
 
     #[cfg(feature = "serde")]
     mod serde {
-        use crate::T128;
+        use crate::*;
+        use pretty_assertions::assert_eq;
+        use serde::Serialize;
         use serde_test::{assert_de_tokens, assert_tokens, Token};
+
+        #[test]
+        fn serialize_std() {
+            #[derive(Serialize)]
+            struct T1 {
+                width: T128,
+            }
+            let t = T1 {
+                width: T128::from(123455),
+            };
+            assert_eq!(
+                r#"{"width":{"value":123455,"plus":0,"minus":0}}"#,
+                serde_json::to_string(&t).unwrap()
+            );
+        }
+
+        #[test]
+        fn serialize_to_tol_string() {
+            #[derive(Serialize)]
+            struct T2 {
+                #[serde(serialize_with = "tol_string")]
+                width: T128,
+            }
+            let t = T2 {
+                width: T128::from(123455),
+            };
+            assert_eq!(
+                r#"{"width":"12.3455 +/-0.0"}"#,
+                serde_json::to_string(&t).unwrap()
+            );
+            let t = T2 {
+                width: T128::new(123.4, 0.5, -0.5),
+            };
+            assert_eq!(
+                r#"{"width":"123.4 +/-0.5"}"#,
+                serde_json::to_string(&t).unwrap()
+            );
+            let t = T2 {
+                width: T128::new(123.4, 0.5, -0.3),
+            };
+            assert_eq!(
+                r#"{"width":"123.4 +0.5/-0.3"}"#,
+                serde_json::to_string(&t).unwrap()
+            );
+        }
+
+        #[test]
+        fn serialize_to_float_struct() {
+            #[derive(Serialize)]
+            struct T2 {
+                #[serde(serialize_with = "float_struct")]
+                width: T128,
+            }
+            let t = T2 {
+                width: T128::from(123455),
+            };
+            assert_eq!(
+                r#"{"width":{"value":12.3455,"plus":0.0,"minus":0.0}}"#,
+                serde_json::to_string(&t).unwrap()
+            );
+        }
+
+        #[test]
+        fn serialize_to_float_seq() {
+            #[derive(Serialize)]
+            struct T2 {
+                #[serde(serialize_with = "float_seq")]
+                width: T128,
+            }
+            let t = T2 {
+                width: T128::from(123455),
+            };
+            assert_eq!(
+                r#"{"width":[12.3455,0.0,0.0]}"#,
+                serde_json::to_string(&t).unwrap()
+            );
+        }
 
         #[test]
         fn serialize_newtype_struct() {
