@@ -1,5 +1,8 @@
 #[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
+use serde::{
+    de::{MapAccess, Visitor},
+    Deserialize, Deserializer, Serialize,
+};
 use std::cmp::Ordering;
 use std::convert::TryFrom;
 use std::fmt::Debug;
@@ -30,7 +33,7 @@ use crate::{error, Myth16, Myth32};
 /// `plus` is signed positive (`+`) and `minus` is signed negative (`-`).
 #[cfg_attr(
     feature = "serde",
-    derive(Deserialize, Serialize),
+    derive(Serialize),
     doc = include_str!("serde.md")
 )]
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
@@ -58,6 +61,8 @@ pub struct T64 {
 
 super::tolerance_body!(T64, Myth32, Myth16);
 super::multiply_tolerance!(T64, u64, u32, u16, u8, i64, i32);
+#[cfg(feature = "serde")]
+super::de_serde_tol!(T64, Myth32, Myth16);
 
 #[cfg(test)]
 mod should {

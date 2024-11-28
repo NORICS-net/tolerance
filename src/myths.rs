@@ -447,7 +447,109 @@ macro_rules! calc_with_myths {
     }
 }
 
+#[cfg(feature = "serde")]
+macro_rules! de_serde {
+    ($Self:ident, $typ:ident) => {
+        impl<'de> Deserialize<'de> for $Self {
+            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+            where
+                D: Deserializer<'de>,
+            {
+                struct MythVisitor;
+
+                impl<'de> Visitor<'de> for MythVisitor {
+                    type Value = $Self;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                        formatter.write_str("a float, string or integer!")
+                    }
+
+                    fn visit_borrowed_str<E>(self, v: &'de str) -> Result<Self::Value, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        $Self::try_from(v).map_err(|_| {
+                            serde::de::Error::invalid_value(serde::de::Unexpected::Str(v), &"1.0")
+                        })
+                    }
+
+                    fn visit_str<E>(self, s: &str) -> Result<Self::Value, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        self.visit_borrowed_str(s)
+                    }
+
+                    fn visit_string<E>(self, s: String) -> Result<Self::Value, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        self.visit_borrowed_str(s.as_str())
+                    }
+
+                    fn visit_f64<E>(self, v: f64) -> Result<Self::Value, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        $Self::try_from(v).map_err(|_| {
+                            serde::de::Error::invalid_value(serde::de::Unexpected::Float(v), &"1.0")
+                        })
+                    }
+
+                    fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        Ok($Self(v as $typ))
+                    }
+
+                    fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        Ok($Self(v as $typ))
+                    }
+
+                    fn visit_i32<E>(self, v: i32) -> Result<Self::Value, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        Ok($Self(v as $typ))
+                    }
+
+                    fn visit_u32<E>(self, v: u32) -> Result<Self::Value, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        Ok($Self(v as $typ))
+                    }
+
+                    fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+                    where
+                        D: Deserializer<'de>,
+                    {
+                        deserializer.deserialize_any(MythVisitor)
+                    }
+
+                    fn visit_newtype_struct<D>(
+                        self,
+                        deserializer: D,
+                    ) -> Result<Self::Value, D::Error>
+                    where
+                        D: Deserializer<'de>,
+                    {
+                        deserializer.deserialize_any(MythVisitor)
+                    }
+                }
+                deserializer.deserialize_any(MythVisitor)
+            }
+        }
+    };
+}
+
 pub(crate) use calc_with_myths;
+#[cfg(feature = "serde")]
+pub(crate) use de_serde;
 pub(crate) use from_myths;
 pub(crate) use from_number;
 pub(crate) use standard_myths;

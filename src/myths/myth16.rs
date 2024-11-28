@@ -1,6 +1,6 @@
 use crate::{error::ToleranceError, Myth32, Myth64, Unit};
 #[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
+use serde::{de::Visitor, Deserialize, Deserializer, Serialize};
 use std::convert::TryFrom;
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign};
@@ -40,7 +40,7 @@ use std::str::FromStr;
 ///     assert_eq!(format!("{myth:#}"), "15000");
 /// ```
 
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Default, PartialOrd, Ord)]
 #[must_use]
 pub struct Myth16(pub(crate) i16);
@@ -57,6 +57,8 @@ super::from_number!(Myth16, u8, i16, i8);
 super::try_from_number!(Myth16, u64, u32, u16, i64, isize, usize);
 super::try_from_myths!(Myth16, Myth32, Myth64);
 super::calc_with_myths!(Myth16, i16, Myth16);
+#[cfg(feature = "serde")]
+super::de_serde!(Myth16, i16);
 
 /// A potentially dangerous function.
 /// Use it for creating `Myth16` in tests or where you can control the danger.

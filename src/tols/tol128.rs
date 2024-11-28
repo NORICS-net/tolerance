@@ -1,5 +1,8 @@
 #[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
+use serde::{
+    de::{MapAccess, Visitor},
+    Deserialize, Deserializer, Serialize,
+};
 use std::cmp::Ordering;
 use std::convert::TryFrom;
 use std::fmt::Debug;
@@ -48,7 +51,7 @@ use crate::{error, Myth32, Myth64};
 ///
 #[cfg_attr(
     feature = "serde",
-    derive(Deserialize, Serialize),
+    derive(Serialize),
     doc = include_str!("serde.md")
 )]
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
@@ -76,6 +79,8 @@ pub struct T128 {
 
 super::tolerance_body!(T128, Myth64, Myth32);
 super::multiply_tolerance!(T128, u64, u32, u16, u8, i64, i32);
+#[cfg(feature = "serde")]
+super::de_serde_tol!(T128, Myth64, Myth32);
 
 #[cfg(test)]
 mod should {
@@ -276,7 +281,7 @@ mod should {
         use serde_test::{assert_de_tokens, assert_tokens, Token};
 
         #[test]
-        fn serialize() {
+        fn serialize_newtype_struct() {
             let m = T128::from(12456.832);
 
             assert_tokens(
@@ -301,10 +306,10 @@ mod should {
         }
 
         #[test]
-        fn deserialize() {
+        fn deserialize_struct() {
             let tol = T128::from(1230000);
             // Full
-            assert_de_tokens(
+            assert_tokens(
                 &tol,
                 &[
                     Token::Struct {
@@ -357,6 +362,28 @@ mod should {
                     Token::StructEnd,
                 ],
             );
+        }
+        #[test]
+        fn deserialize_json() {
+            let t: T128 = serde_json::from_slice(b"{\"v\": 1245.67}").unwrap();
+            assert_eq!(t, T128::new(1245_6700, 0, 0));
+
+            let t: T128 =
+                serde_json::from_slice(b"{\"v\": 1245.67, \"plus\": 0.3, \"minus\": -0.5 }")
+                    .unwrap();
+            assert_eq!(t, T128::new(1245_6700, 0.3, -0.5));
+
+            let t: T128 = serde_json::from_slice(b"[ 1245.67, 0.3,  -0.5 ]").unwrap();
+            assert_eq!(t, T128::new(1245_6700, 0.3, -0.5));
+
+            let t: T128 = serde_json::from_slice(b"1245.67").unwrap();
+            assert_eq!(t, T128::new(1245_6700, 0.0, 0.0));
+
+            let t: T128 = serde_json::from_slice(b"\"1245.67 +/- 0.45\"").unwrap();
+            assert_eq!(t, T128::new(1245_6700, 0.45, -0.45));
+
+            let t: T128 = serde_json::from_slice(b"\"1245.6700 +0.45 -0.2\"").unwrap();
+            assert_eq!(t, T128::new(1245_6700, 0.45, -0.2));
         }
     }
 }

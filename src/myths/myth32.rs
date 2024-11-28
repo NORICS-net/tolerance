@@ -1,6 +1,6 @@
 use crate::{error::ToleranceError, Myth16, Myth64, Unit};
 #[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
+use serde::{de::Visitor, Deserialize, Deserializer, Serialize};
 use std::convert::TryFrom;
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign};
@@ -39,7 +39,7 @@ use std::str::FromStr;
 /// ```
 ///
 
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Default, PartialOrd, Ord)]
 #[must_use]
 pub struct Myth32(pub(crate) i32);
@@ -57,6 +57,8 @@ super::try_from_number!(Myth32, u64, u32, i64, isize, usize);
 super::from_myths!(Myth32, Myth16);
 super::try_from_myths!(Myth32, Myth64);
 super::calc_with_myths!(Myth32, i32, Myth32, Myth16);
+#[cfg(feature = "serde")]
+super::de_serde!(Myth32, i32);
 
 #[cfg(test)]
 mod should {

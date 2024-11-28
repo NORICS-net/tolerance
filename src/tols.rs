@@ -617,3 +617,213 @@ macro_rules! tolerance_body {
 }
 
 pub(crate) use tolerance_body;
+
+#[cfg(feature = "serde")]
+macro_rules! de_serde_tol {
+    ($Self:ident, $Val:ident, $Tol:ident) => {
+        impl<'de> Deserialize<'de> for $Self {
+            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+            where
+                D: Deserializer<'de>,
+            {
+                enum Field {
+                    Value,
+                    Plus,
+                    Minus,
+                }
+                impl<'de> Deserialize<'de> for Field {
+                    fn deserialize<D>(deserializer: D) -> Result<Field, D::Error>
+                    where
+                        D: Deserializer<'de>,
+                    {
+                        struct FieldVisitor;
+
+                        impl<'de> Visitor<'de> for FieldVisitor {
+                            type Value = Field;
+
+                            fn expecting(
+                                &self,
+                                formatter: &mut std::fmt::Formatter,
+                            ) -> std::fmt::Result {
+                                formatter.write_str("`value`, `plus` or `minus`")
+                            }
+
+                            fn visit_str<E>(self, value: &str) -> Result<Field, E>
+                            where
+                                E: serde::de::Error,
+                            {
+                                match value {
+                                    "value" | "v" => Ok(Field::Value),
+                                    "plus" | "p" => Ok(Field::Plus),
+                                    "minus" | "m" => Ok(Field::Minus),
+                                    _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                                }
+                            }
+                        }
+
+                        deserializer.deserialize_identifier(FieldVisitor)
+                    }
+                }
+                struct TolVisitor;
+
+                impl<'de> Visitor<'de> for TolVisitor {
+                    type Value = $Self;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                        formatter.write_str(concat!(
+                            "a ",
+                            stringify!($Self),
+                            " either as a struct `{v=1.0,p=0.2,m=-0.2}` or as string `\"1.0 +/-0.2\"`"
+                        ))
+                    }
+
+                    fn visit_borrowed_str<E>(self, v: &'de str) -> Result<Self::Value, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        $Self::try_from(v).map_err(|_| {
+                            serde::de::Error::invalid_value(
+                                serde::de::Unexpected::Str(v),
+                                &"1.0 +/- 0.2",
+                            )
+                        })
+                    }
+
+                    fn visit_str<E>(self, s: &str) -> Result<Self::Value, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        self.visit_borrowed_str(s)
+                    }
+
+                    fn visit_string<E>(self, s: String) -> Result<Self::Value, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        self.visit_borrowed_str(s.as_str())
+                    }
+
+                    fn visit_f64<E>(self, v: f64) -> Result<Self::Value, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        $Self::try_from(v).map_err(|_| {
+                            serde::de::Error::invalid_value(serde::de::Unexpected::Float(v), &"1.0")
+                        })
+                    }
+
+                    fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        let m = $Val::try_from(v).map_err(|_| {
+                            serde::de::Error::invalid_value(serde::de::Unexpected::Signed(v), &"10000")
+                        })?;
+                        Ok($Self::from(m))
+                    }
+
+                    fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        let m = $Val::try_from(v).map_err(|_| {
+                            serde::de::Error::invalid_value(serde::de::Unexpected::Unsigned(v), &"10000")
+                        })?;
+                        Ok($Self::from(m))
+                    }
+
+                    fn visit_i32<E>(self, v: i32) -> Result<Self::Value, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        Ok($Self::from(v))
+                    }
+
+                    fn visit_u32<E>(self, v: u32) -> Result<Self::Value, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        let m = $Val::try_from(v).map_err(|_| {
+                            serde::de::Error::invalid_value(serde::de::Unexpected::Unsigned(v as u64), &"10000")
+                        })?;
+                        Ok($Self::from(m))
+                    }
+
+                    fn visit_seq<V>(self, mut seq: V) -> Result<Self::Value, V::Error>
+                        where
+                            V: serde::de::SeqAccess<'de>,
+                        {
+                            let value : $Val = seq.next_element()?
+                                .ok_or_else(|| serde::de::Error::invalid_length(0, &self))?;
+                            let plus : $Tol = seq.next_element()?.unwrap_or($Tol::ZERO);
+                            let minus : $Tol = seq.next_element()?.unwrap_or(plus.neg());
+                            Ok($Self {
+                                value, plus, minus
+                            })
+                        }
+
+                    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+                    where
+                        A: MapAccess<'de>,
+                    {
+                        let mut value = None;
+                        let mut plus = None;
+                        let mut minus = None;
+                        while let Some(key) = map.next_key()? {
+                            match key {
+                                Field::Value => {
+                                    if value.is_some() {
+                                        return Err(serde::de::Error::duplicate_field("value"));
+                                    }
+                                    value = Some(map.next_value()?);
+                                }
+                                Field::Plus => {
+                                    if plus.is_some() {
+                                        return Err(serde::de::Error::duplicate_field("plus"));
+                                    }
+                                    plus = Some(map.next_value()?);
+                                }
+                                Field::Minus => {
+                                    if minus.is_some() {
+                                        return Err(serde::de::Error::duplicate_field("minus"));
+                                    }
+                                    minus = Some(map.next_value()?);
+                                }
+                            }
+                        }
+
+                        let value : $Val = value.ok_or_else(|| serde::de::Error::missing_field("value"))?;
+                        let plus : $Tol = plus.unwrap_or($Tol::ZERO);
+                        let minus : $Tol = minus.unwrap_or(plus.neg());
+                        Ok($Self {
+                            value, plus, minus
+                        })
+                    }
+
+                    fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+                    where
+                        D: Deserializer<'de>,
+                    {
+                        deserializer.deserialize_any(TolVisitor)
+                    }
+
+                    fn visit_newtype_struct<D>(
+                        self,
+                        deserializer: D,
+                    ) -> Result<Self::Value, D::Error>
+                    where
+                        D: Deserializer<'de>,
+                    {
+                        deserializer.deserialize_any(TolVisitor)
+                    }
+                }
+
+                const FIELDS: &[&str] = &["value", "plus", "minus"];
+                deserializer.deserialize_any(TolVisitor)
+            }
+        }
+    };
+}
+
+#[cfg(feature = "serde")]
+pub(crate) use de_serde_tol;

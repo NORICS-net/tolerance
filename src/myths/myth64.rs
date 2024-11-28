@@ -1,6 +1,6 @@
 use crate::{error::ToleranceError, Myth16, Myth32, Unit};
 #[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
+use serde::{de::Visitor, Deserialize, Deserializer, Serialize};
 use std::convert::TryFrom;
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign};
@@ -30,7 +30,7 @@ use std::str::FromStr;
 ///     assert_eq!(format!("{myth:#}"), "125000");
 /// ```
 ///
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Default, PartialOrd, Ord)]
 #[must_use]
 pub struct Myth64(pub(crate) i64);
@@ -40,6 +40,8 @@ super::from_myths!(Myth64, Myth32, Myth16);
 super::from_number!(Myth64, u32, u16, u8, i64, i32, i16, i8);
 super::standard_myths!(Myth64, i64, u64, u32, u16, u8, usize, i64, i32, i16, i8, isize);
 super::try_from_number!(Myth64, u64, usize, isize);
+#[cfg(feature = "serde")]
+super::de_serde!(Myth64, i64);
 
 #[cfg(test)]
 mod should {
@@ -196,10 +198,10 @@ mod should {
     #[cfg(feature = "serde")]
     mod serde {
         use crate::Myth64;
-        use serde_test::{assert_tokens, Token};
+        use serde_test::{assert_de_tokens, assert_de_tokens_error, assert_tokens, Token};
 
         #[test]
-        fn serialize() {
+        fn serialize_i64() {
             let m = Myth64::from(12456.832);
             assert_tokens(
                 &m,
@@ -208,6 +210,56 @@ mod should {
                     Token::I64(124_568_320),
                 ],
             );
+        }
+
+        #[test]
+        fn deserialize_string() {
+            assert_de_tokens_error::<Myth64>(
+                &[Token::String("nonumber")],
+                "invalid value: string \"nonumber\", expected 1.0",
+            );
+            assert_de_tokens(&Myth64::from(23.004), &[Token::String("23.004")]);
+            assert_de_tokens(&Myth64::from(0.04), &[Token::String(".04")]);
+            assert_de_tokens(&Myth64::from(0.04), &[Token::Str(".04")]);
+        }
+
+        #[test]
+        fn deserialize_f64() {
+            assert_de_tokens(&Myth64::from(23.004), &[Token::F64(23.004)]);
+            assert_de_tokens(&Myth64::from(0.0043), &[Token::F64(0.0043)]);
+        }
+
+        #[test]
+        fn deserialize_i64() {
+            assert_de_tokens(&Myth64::from(23.004), &[Token::I64(23_0040)]);
+            assert_de_tokens(&Myth64::from(0.0043), &[Token::I64(0_0043)]);
+        }
+
+        #[test]
+        fn deserialize_option() {
+            assert_de_tokens(&Myth64::from(23.004), &[Token::Some, Token::I64(23_0040)]);
+            assert_de_tokens(
+                &Myth64::from(0.0043),
+                &[Token::Some, Token::String(".0043")],
+            );
+        }
+
+        #[test]
+        fn deserialize_i32() {
+            assert_de_tokens(&Myth64::from(23.004), &[Token::I32(23_0040)]);
+            assert_de_tokens(&Myth64::from(0.0043), &[Token::I32(0_0043)]);
+        }
+
+        #[test]
+        fn deserialize_json() {
+            let m = serde_json::from_slice(b"23.004").unwrap();
+            assert_eq!(Myth64::from(23.004), m);
+
+            let m = serde_json::from_slice(b"\".004\"").unwrap();
+            assert_eq!(Myth64::from(0.004), m);
+
+            let m = serde_json::from_slice(b"4000").unwrap();
+            assert_eq!(Myth64::from(0.4), m);
         }
     }
 }
