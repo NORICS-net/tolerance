@@ -56,6 +56,9 @@ assert_eq!(t, T128::new(1245_6700, 0.45, -0.2));
 let t: T128 = serde_json::from_slice(b"\"1245.67 +/- 0.45\"").unwrap();
 assert_eq!(t, T128::new(1245_6700, 0.45, -0.45));
 
+let t: T128 = serde_json::from_slice(b"\"1245.67;0.45\"").unwrap();
+assert_eq!(t, T128::new(1245_6700, 0.45, -0.45));
+
 let t: T128 = serde_json::from_slice(b"\"1245.67\"").unwrap();
 assert_eq!(t, T128::new(1245_6700, 0, -0));
 

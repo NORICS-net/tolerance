@@ -51,7 +51,6 @@ mod should {
     use super::T64;
     use crate::error::ToleranceError;
     use pretty_assertions::assert_eq;
-    use serde::Deserialize;
     use std::convert::TryFrom;
 
     #[test]
@@ -159,10 +158,11 @@ mod should {
         );
     }
 
+    #[cfg(feature = "serde")]
     #[test]
     fn serialize_string() {
-        use crate::{tol_string, T64};
-        use serde::Serialize;
+        use crate::{into_string, T64};
+        use serde::{Deserialize, Serialize};
 
         #[derive(Serialize, Deserialize, PartialEq, Debug)]
         struct T1 {
@@ -178,7 +178,7 @@ mod should {
 
         #[derive(Serialize, Deserialize, PartialEq, Debug)]
         struct T2 {
-            #[serde(serialize_with = "tol_string")]
+            #[serde(serialize_with = "into_string")]
             width: T64,
         }
         let t = T2 {
@@ -204,5 +204,19 @@ mod should {
         assert_eq!(r#"{"width":"123.4 +0.5/-0.3"}"#, json);
         let t2: T2 = serde_json::from_str(&json).unwrap();
         assert_eq!(t2, t);
+
+        #[derive(Serialize, Deserialize, PartialEq, Debug)]
+        struct T3 {
+            #[serde(serialize_with = "into_string")]
+            width: Option<T64>,
+        }
+        let t = T3 {
+            width: Some(T64::from(123.460)),
+        };
+        let json = serde_json::to_string(&t).unwrap();
+        assert_eq!(r#"{"width":"123.46 +/-0.0"}"#, json);
+        let t = T3 { width: None };
+        let json = serde_json::to_string(&t).unwrap();
+        assert_eq!(r#"{"width":null}"#, json);
     }
 }

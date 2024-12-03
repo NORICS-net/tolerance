@@ -415,10 +415,10 @@ macro_rules! tolerance_body {
                 } else {
                     let m = if minus.0 > 0 { "+" } else if minus.0 == 0 { "-" } else { "" };
                     if f.alternate() {
-                        write!(f, "{value:#.v$} {plus:+#.t$}/{m}{minus:#.t$}")
+                        write!(f, "{value:#} {plus:+#}/{m}{minus:#}")
                     } else {
                         if f.precision().is_some() {
-                        write!(f, "{value:.v$} {plus:+.t$}/{m}{minus:.t$}")
+                            write!(f, "{value:.v$} {plus:+.t$}/{m}{minus:.t$}")
                         } else {
                             write!(f, "{value} {plus:+}/{m}{minus}")
                         }

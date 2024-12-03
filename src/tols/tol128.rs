@@ -262,7 +262,7 @@ mod should {
     mod serde {
         use crate::*;
         use pretty_assertions::assert_eq;
-        use serde::Serialize;
+        use serde::{Deserialize, Serialize};
         use serde_test::{assert_de_tokens, assert_tokens, Token};
 
         #[test]
@@ -284,29 +284,41 @@ mod should {
         fn serialize_to_tol_string() {
             #[derive(Serialize)]
             struct T2 {
-                #[serde(serialize_with = "tol_string")]
+                #[serde(serialize_with = "into_string")]
                 width: T128,
+
+                #[serde(serialize_with = "into_string")]
+                length: Option<T128>,
             }
             let t = T2 {
                 width: T128::from(123455),
+                length: Some(T128::new(1230.0, 40.0, 0)),
             };
             assert_eq!(
-                r#"{"width":"12.3455 +/-0.0"}"#,
+                r#"{"width":"12.3455 +/-0.0","length":"1230.0 +40.0/-0.0"}"#,
                 serde_json::to_string(&t).unwrap()
             );
             let t = T2 {
                 width: T128::new(123.4, 0.5, -0.5),
+                length: None,
             };
             assert_eq!(
-                r#"{"width":"123.4 +/-0.5"}"#,
+                r#"{"width":"123.4 +/-0.5","length":null}"#,
                 serde_json::to_string(&t).unwrap()
             );
-            let t = T2 {
-                width: T128::new(123.4, 0.5, -0.3),
-            };
+
+            #[derive(Serialize, Deserialize, PartialEq, Debug)]
+            struct T3 {
+                width: Option<T128>,
+            }
+            let t = T3 { width: None };
+            assert_eq!(r#"{"width":null}"#, serde_json::to_string(&t).unwrap());
+            assert_eq!(serde_json::from_str::<T3>(r#"{"width":null}"#).unwrap(), t);
             assert_eq!(
-                r#"{"width":"123.4 +0.5/-0.3"}"#,
-                serde_json::to_string(&t).unwrap()
+                serde_json::from_str::<T3>(r#"{"width": "123.34 0.4 -0.2"}"#).unwrap(),
+                T3 {
+                    width: Some(T128::new(123.34, 0.4, -0.2))
+                }
             );
         }
 
@@ -435,8 +447,15 @@ mod should {
                     .unwrap();
             assert_eq!(t, T128::new(1245_6700, 0.3, -0.5));
 
-            let t: T128 = serde_json::from_slice(b"[ 1245.67, 0.3,  -0.5 ]").unwrap();
+            let t: T128 = serde_json::from_slice(b"[ 1245.67, 0.3, -0.5 ]").unwrap();
             assert_eq!(t, T128::new(1245_6700, 0.3, -0.5));
+
+            let t: T128 = serde_json::from_slice(b"[ 1245.67, 0.3 ]").unwrap();
+            assert_eq!(t, T128::new(1245_6700, 0.3, -0.3));
+
+            let t: Result<T128, serde_json::Error> =
+                serde_json::from_slice(b"[ 1245.67, 0.3, -0.5, 234.0 ]");
+            assert!(t.is_err());
 
             let t: T128 = serde_json::from_slice(b"1245.67").unwrap();
             assert_eq!(t, T128::new(1245_6700, 0.0, 0.0));

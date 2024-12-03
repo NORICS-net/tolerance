@@ -22,38 +22,7 @@ pub use tols::tol64::*;
 use error::ToleranceError;
 
 #[cfg(feature = "serde")]
-pub fn tol_string<S>(t: &impl std::fmt::Display, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: serde::Serializer,
-{
-    serializer.serialize_str(format!("{t}").as_str())
-}
-
-#[cfg(feature = "serde")]
-pub fn float_struct<S>(T128 { value, plus, minus }: &T128, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: serde::Serializer,
-{
-    use serde::ser::SerializeStruct;
-    let mut state = serializer.serialize_struct("T128", 3)?;
-    state.serialize_field("value", &value.as_f64())?;
-    state.serialize_field("plus", &plus.as_f64())?;
-    state.serialize_field("minus", &minus.as_f64())?;
-    state.end()
-}
-
-#[cfg(feature = "serde")]
-pub fn float_seq<S>(T128 { value, plus, minus }: &T128, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: serde::Serializer,
-{
-    use serde::ser::SerializeSeq;
-    let mut seq = serializer.serialize_seq(Some(3))?;
-    seq.serialize_element(&value.as_f64())?;
-    seq.serialize_element(&plus.as_f64())?;
-    seq.serialize_element(&minus.as_f64())?;
-    seq.end()
-}
+include!("tols/serde.rs");
 
 #[inline]
 fn str2int(bytes: &[u8], t_type: &str) -> Result<i64, ToleranceError> {
