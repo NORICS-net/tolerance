@@ -1,4 +1,7 @@
-/// serializes into a string like the [T128.to_string()]-method.
+/// Serializes into a string like [`format!()`](struct.T128.html).
+/// ```json
+/// "width": "10.0 +/-0.1"
+/// ```
 #[inline]
 pub fn into_string<S>(t: &dyn std::any::Any, serializer: S) -> Result<S::Ok, S::Error>
 where
@@ -35,7 +38,18 @@ where
     }
 }
 
-pub fn float_struct<S>(T128 { value, plus, minus }: &T128, serializer: S) -> Result<S::Ok, S::Error>
+/// Serialize the `T128` into a struct like the default serializer but with `f64` fields.
+/// ```json
+/// "width": {
+///   "value": 10.0,
+///   "plus": 0.1,
+///   "minus": -o.1
+/// }
+/// ```
+pub fn into_float_struct<S>(
+    T128 { value, plus, minus }: &T128,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
 where
     S: serde::Serializer,
 {
@@ -47,7 +61,14 @@ where
     state.end()
 }
 
-pub fn float_seq<S>(T128 { value, plus, minus }: &T128, serializer: S) -> Result<S::Ok, S::Error>
+/// Serialize the `T128` into a array of 3 `f64` fields (value, plus, minus).
+/// ```json
+/// "width": [10.0, 0.1, -0.1]
+/// ```
+pub fn into_float_seq<S>(
+    T128 { value, plus, minus }: &T128,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
 where
     S: serde::Serializer,
 {

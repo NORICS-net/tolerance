@@ -1,6 +1,6 @@
 ### Serde
 
-#### Serialization
+#### Default serializer
 
 Serializes into something like:
 ```json
@@ -10,6 +10,23 @@ Serializes into something like:
   "minus": -1000
 }
 ```
+
+#### Plugable serializer
+
+Serde offers a [`serialize_with`](https://serde.rs/field-attrs.html#serialize_with) parameter.
+
+```rust
+use tolerance::*;
+
+struct Part {
+    #[serde(serialize_with = "into_string")]
+    width: Option<T128>
+}
+```
+Available serializers:
+* `into_string`: serialize into string-field like the [`to_string()`-method](fn.into_string.html).
+* `into_float_struct`: serialize into a [struct like the default-serializer](fn.into_float_struct.html) but with float-fields.
+* `into_float_seq`: serialize into an [array of 3 float-fields](fn.into_float_seq.html).
 
 #### Deserialization
 
