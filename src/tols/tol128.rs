@@ -179,48 +179,49 @@ mod should {
     #[test]
     fn display_compact() {
         let o = T128::new(20_000, 50, -100);
-        assert_eq!(format!("{o}"), String::from("2.0 +0.005/-0.01"));
+        assert_eq!(format!("{o}"), "2.0 +0.005/-0.01");
         let o = T128::new(20_000, 50, -50);
-        assert_eq!(format!("{o}"), String::from("2.0 +/-0.005"));
+        assert_eq!(format!("{o}"), "2.0 +/-0.005");
         let o = T128::new(20_000, 0, 0);
-        assert_eq!(format!("{o}"), String::from("2.0 +/-0.0"));
+        assert_eq!(format!("{o}"), "2.0 +/-0.0");
         let o = T128::new(20_000, 50, 0);
-        assert_eq!(format!("{o}"), String::from("2.0 +0.005/-0.0"));
+        assert_eq!(format!("{o}"), "2.0 +0.005/-0.0");
         let o = T128::new(20_000, 0, -400);
-        assert_eq!(format!("{o}"), String::from("2.0 +0.0/-0.04"));
+        assert_eq!(format!("{o}"), "2.0 +0.0/-0.04");
         let o = T128::new(20_000, 800, 400);
-        assert_eq!(format!("{o}"), String::from("2.0 +0.08/+0.04"));
+        assert_eq!(format!("{o}"), "2.0 +0.08/+0.04");
         let o = T128::new(20_000, -400, -800);
-        assert_eq!(format!("{o}"), String::from("2.0 -0.04/-0.08"));
+        assert_eq!(format!("{o}"), "2.0 -0.04/-0.08");
     }
 
     #[test]
     fn display_is_adjustable() {
         let o = T128::new(20_000, 50, -100);
-        assert_eq!(format!("{o}"), String::from("2.0 +0.005/-0.01"));
-        assert_eq!(format!("{o:.3}"), "2.000 +0.0050/-0.0100".to_string());
-        assert_eq!(format!("{o:.4}"), "2.0000 +0.0050/-0.0100".to_string());
-        assert_eq!(format!("{o:.0}"), String::from("2 +/-0.0"));
-        assert_eq!(format!("{o:.1}"), String::from("2.0 +/-0.01"));
+        assert_eq!("2.0 +0.005/-0.01", format!("{o}"));
+        assert_eq!("2.000 +0.0050/-0.0100", format!("{o:.3}"));
+        assert_eq!("2.0000 +0.0050/-0.0100", format!("{o:.4}"));
+        assert_eq!("2 +/-0.0", format!("{o:.0}"));
+        assert_eq!("2.0 +/-0.01", format!("{o:.1}"));
 
         let o = T128::with_sym(20_000, 50);
-        assert_eq!(format!("{o}"), String::from("2.0 +/-0.005"));
-        assert_eq!(format!("{o:.0}"), String::from("2 +/-0.0"));
+        assert_eq!("2.0 +/-0.005", format!("{o}"));
+        assert_eq!("2 +/-0.0", format!("{o:.0}"));
 
         let o = T128::new(0.345, 0.010, -0.014);
-        assert_eq!(format!("{o:.3}"), String::from("0.345 +0.0100/-0.0140"));
+        assert_eq!("0.345 +0.0100/-0.0140", format!("{o:.3}"));
         let o = T128::new(-0.35, 0.010, -0.014);
-        assert_eq!(format!("{o:.3}"), String::from("-0.350 +0.0100/-0.0140"));
+        assert_eq!("-0.350 +0.0100/-0.0140", format!("{o:.3}"));
+        assert_eq!("      -0.35 +0.010/-0.014", format!("{o:>25.2}"),);
+        assert_eq!("   -0.35 +0.010/-0.014   ", format!("{o:^25.2}"),);
 
-        assert_eq!(format!("{o:#}"), String::from("-3500 +100/-140"));
-
+        assert_eq!(format!("{o:#}"), "-3500 +100/-140");
         assert_eq!("T128(-0.350 +0.010 -0.014)", format!("{o:.3?}"));
     }
 
     #[test]
     fn construct_consistent() {
         let o = T128::from((2.0, 0.005, -0.01));
-        assert_eq!(o.to_string(), "2.0 +0.005/-0.01".to_string())
+        assert_eq!("2.0 +0.005/-0.01", o.to_string())
     }
 
     #[test]
@@ -326,7 +327,7 @@ mod should {
         fn serialize_to_float_struct() {
             #[derive(Serialize)]
             struct T2 {
-                #[serde(serialize_with = "float_struct")]
+                #[serde(serialize_with = "into_float_struct")]
                 width: T128,
             }
             let t = T2 {
@@ -342,7 +343,7 @@ mod should {
         fn serialize_to_float_seq() {
             #[derive(Serialize)]
             struct T2 {
-                #[serde(serialize_with = "float_seq")]
+                #[serde(serialize_with = "into_float_seq")]
                 width: T128,
             }
             let t = T2 {

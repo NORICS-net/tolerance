@@ -406,24 +406,25 @@ macro_rules! tolerance_body {
                 let plus = self.plus.round(tol_round);
                 let minus = self.minus.round(tol_round);
                 let value = self.value;
-                if plus == -minus && !f.alternate() && !plus.is_negative() {
+                let s = if plus == -minus && !f.alternate() && !plus.is_negative() {
                     if f.precision().is_some() {
-                        write!(f, "{value:.v$} +/-{plus:.t$}")
+                        format!("{value:.v$} +/-{plus:.t$}")
                     } else {
-                        write!(f, "{value} +/-{plus}")
+                        format!("{value} +/-{plus}")
                     }
                 } else {
                     let m = if minus.0 > 0 { "+" } else if minus.0 == 0 { "-" } else { "" };
                     if f.alternate() {
-                        write!(f, "{value:#} {plus:+#}/{m}{minus:#}")
+                        format!("{value:#} {plus:+#}/{m}{minus:#}")
                     } else {
                         if f.precision().is_some() {
-                            write!(f, "{value:.v$} {plus:+.t$}/{m}{minus:.t$}")
+                            format!("{value:.v$} {plus:+.t$}/{m}{minus:.t$}")
                         } else {
-                            write!(f, "{value} {plus:+}/{m}{minus}")
+                            format!("{value} {plus:+}/{m}{minus}")
                         }
                     }
-                }
+                };
+                f.pad_integral(true, "", &s)
             }
         }
 

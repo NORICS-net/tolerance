@@ -16,8 +16,10 @@ Serializes into something like:
 Serde offers a [`serialize_with`](https://serde.rs/field-attrs.html#serialize_with) parameter.
 
 ```rust
+# use serde::Serialize;
 use tolerance::*;
 
+#[derive(Serialize)]
 struct Part {
     #[serde(serialize_with = "into_string")]
     width: Option<T128>

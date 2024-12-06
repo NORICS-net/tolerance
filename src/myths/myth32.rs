@@ -64,6 +64,7 @@ super::de_serde!(Myth32, i32);
 #[cfg(test)]
 mod should {
     use super::{Myth32, Unit};
+    use pretty_assertions::assert_eq;
 
     #[test]
     fn try_from_str() {

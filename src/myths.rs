@@ -305,13 +305,12 @@ macro_rules! standard_myths {
                     Display::fmt(&self.0, f)
                 } else {
                     let val = self.round(Unit::potency(4 - p)).0;
-                    let l = if val.is_negative() || f.sign_plus() { 6 } else { 5 };
-                    let mut s = if f.sign_plus() { format!("{val:+0l$}") } else { format!("{val:0l$}") };
+                    let mut s = format!("{:05}", val.abs()) ;
                     if p > 0 {
                         s.insert(s.len() - 4, '.');
                     }
                     s.truncate(s.len() - (4 - p));
-                    write!(f, "{s}")
+                    f.pad_integral(self.0 >= 0, "", &s)
                 }
             }
         }

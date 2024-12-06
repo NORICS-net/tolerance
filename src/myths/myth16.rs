@@ -72,6 +72,7 @@ impl From<i32> for Myth16 {
 #[cfg(test)]
 mod should {
     use super::{Myth16, Unit};
+    use pretty_assertions::assert_eq;
 
     #[test]
     fn try_from_str() {

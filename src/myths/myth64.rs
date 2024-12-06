@@ -169,6 +169,9 @@ mod should {
         assert_eq!("-455", format!("{m:#}").as_str());
         let m = Myth64::from(4566.4689);
         assert_eq!(format!("{m:.3}"), "4566.469");
+        assert_eq!(format!("{m:>15.2}"), "        4566.47");
+        assert_eq!(format!("{m:>010.4}"), "04566.4689");
+
         let m = Myth64::ZERO;
         assert_eq!(format!("{m:.2}"), "0.00");
     }
