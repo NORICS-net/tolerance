@@ -42,10 +42,10 @@ fn str2int(bytes: &[u8], t_type: &str) -> Result<i64, ToleranceError> {
 
 /// helper-method used from all types.
 #[inline]
-pub(crate) fn try_from_str(value: &str, t_type: &str) -> Result<i64, ToleranceError> {
+pub(crate) fn try_from_str(value: &str, t_type: &'static str) -> Result<i64, ToleranceError> {
     let value = value.trim();
     if value.is_empty() {
-        return ToleranceError::parse_err(format!("Cannot parse an empty string into a {t_type}!"));
+        return Err(ToleranceError::ParseEmptyStr(t_type));
     }
     let (base, fraction) = value.split_once('.').unwrap_or((value, "0"));
     let mut base = base.as_bytes();

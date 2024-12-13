@@ -343,7 +343,7 @@ mod should {
         fn serialize_to_float_seq() {
             #[derive(Serialize)]
             struct T2 {
-                #[serde(serialize_with = "into_float_seq")]
+                #[serde(serialize_with = "into_to_float_seq")]
                 width: T128,
             }
             let t = T2 {
@@ -438,6 +438,7 @@ mod should {
                 ],
             );
         }
+
         #[test]
         fn deserialize_json() {
             let t: T128 = serde_json::from_slice(b"{\"v\": 1245.67}").unwrap();
@@ -466,6 +467,32 @@ mod should {
 
             let t: T128 = serde_json::from_slice(b"\"1245.6700 +0.45 -0.2\"").unwrap();
             assert_eq!(t, T128::new(1245_6700, 0.45, -0.2));
+        }
+
+        #[test]
+        fn serialize_from_option_t128_default() {
+            use crate::*;
+
+            #[derive(Serialize, Deserialize, PartialEq, Debug)]
+            struct T3 {
+                #[serde(deserialize_with = "empty_to_zero_t128")]
+                width: Option<T128>,
+            }
+            let t = T3 { width: None };
+            assert_eq!(r#"{"width":null}"#, serde_json::to_string(&t).unwrap());
+            assert_eq!(serde_json::from_str::<T3>(r#"{"width":null}"#).unwrap(), t);
+            assert_eq!(
+                serde_json::from_str::<T3>(r#"{"width": "123.34"}"#).unwrap(),
+                T3 {
+                    width: Some(T128::from(123.34))
+                }
+            );
+            assert_eq!(
+                serde_json::from_str::<T3>(r#"{"width": ""}"#).unwrap(),
+                T3 {
+                    width: Some(T128::from(0))
+                }
+            );
         }
     }
 }

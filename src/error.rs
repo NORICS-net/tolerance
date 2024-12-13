@@ -6,6 +6,7 @@ use std::num::{ParseFloatError, TryFromIntError};
 pub enum ToleranceError {
     ParseError(String),
     Overflow(String),
+    ParseEmptyStr(&'static str),
 }
 
 impl std::error::Error for ToleranceError {}
@@ -31,9 +32,10 @@ impl From<Infallible> for ToleranceError {
 
 impl Display for ToleranceError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        use ToleranceError::{Overflow, ParseError};
+        use ToleranceError::*;
         let text = match self {
             ParseError(text) | Overflow(text) => text.as_str(),
+            ParseEmptyStr(type_r) => &format!("Cannot parse an empty string into {type_r}."),
         };
         write!(f, "{text}")
     }

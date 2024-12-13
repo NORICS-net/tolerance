@@ -202,6 +202,7 @@ mod should {
     #[cfg(feature = "serde")]
     mod serde {
         use crate::Myth64;
+        use serde::{Deserialize, Serialize};
         use serde_test::{assert_de_tokens, assert_de_tokens_error, assert_tokens, Token};
 
         #[test]
@@ -241,11 +242,42 @@ mod should {
 
         #[test]
         fn deserialize_option() {
-            assert_de_tokens(&Myth64::from(23.004), &[Token::Some, Token::I64(23_0040)]);
+            #[derive(Serialize, Deserialize, Debug, PartialEq)]
+            struct T {
+                w: Option<Myth64>,
+            }
+            let t1 = T {
+                w: Some(Myth64::from(23.004)),
+            };
+            assert_eq!(
+                "{\n  \"w\": 230040\n}",
+                serde_json::to_string_pretty(&t1).unwrap()
+            );
             assert_de_tokens(
-                &Myth64::from(0.0043),
+                &t1,
+                &[
+                    Token::Struct { name: "T", len: 1 },
+                    Token::Str("w"),
+                    Token::Some,
+                    Token::I64(23_0040),
+                    Token::StructEnd,
+                ],
+            );
+            let t2 = T { w: None };
+            assert_de_tokens(
+                &t2,
+                &[
+                    Token::Struct { name: "T", len: 1 },
+                    Token::Str("w"),
+                    Token::None,
+                    Token::StructEnd,
+                ],
+            );
+            assert_de_tokens(
+                &Some(Myth64::from(0.0043)),
                 &[Token::Some, Token::String(".0043")],
             );
+            assert_de_tokens(&None::<Myth64>, &[Token::None]);
         }
 
         #[test]
@@ -262,8 +294,62 @@ mod should {
             let m = serde_json::from_slice(b"\".004\"").unwrap();
             assert_eq!(Myth64::from(0.004), m);
 
-            let m = serde_json::from_slice(b"4000").unwrap();
+            let m: Myth64 = serde_json::from_slice(b"4000").unwrap();
             assert_eq!(Myth64::from(0.4), m);
+
+            let m: Option<Myth64> = serde_json::from_slice(b"4000").unwrap();
+            assert_eq!(Some(Myth64::from(0.4)), m);
+
+            let m: Option<Myth64> = serde_json::from_slice(b"null").unwrap();
+            assert_eq!(None, m);
+
+            let m: Option<Myth64> = serde_json::from_slice(b"\"0.4\"").unwrap();
+            assert_eq!(Some(Myth64::from(0.4)), m);
+        }
+
+        #[test]
+        fn serialize_to_myth_string() {
+            use crate::into_string;
+            use serde::*;
+
+            #[derive(Serialize)]
+            struct T2 {
+                #[serde(serialize_with = "into_string")]
+                width: Myth64,
+
+                #[serde(serialize_with = "into_string")]
+                length: Option<Myth64>,
+            }
+            let t = T2 {
+                width: Myth64::from(123455),
+                length: Some(Myth64::from(1230.0)),
+            };
+            assert_eq!(
+                r#"{"width":"12.3455","length":"1230.0"}"#,
+                serde_json::to_string(&t).unwrap()
+            );
+            let t = T2 {
+                width: Myth64::from(123.4),
+                length: None,
+            };
+            assert_eq!(
+                r#"{"width":"123.4","length":null}"#,
+                serde_json::to_string(&t).unwrap()
+            );
+
+            #[derive(Serialize, Deserialize, PartialEq, Debug)]
+            struct T3 {
+                width: Option<Myth64>,
+            }
+            let t = T3 { width: None };
+            assert_eq!(r#"{"width":null}"#, serde_json::to_string(&t).unwrap());
+            assert_eq!(serde_json::from_str::<T3>(r#"{"width":null}"#).unwrap(), t);
+            assert_eq!(
+                serde_json::from_str::<T3>(r#"{"width": "123.34"}"#).unwrap(),
+                T3 {
+                    width: Some(Myth64::from(123.34))
+                }
+            );
         }
     }
 }

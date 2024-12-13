@@ -467,27 +467,13 @@ macro_rules! de_serde {
                         formatter.write_str("a float, string or integer!")
                     }
 
-                    fn visit_borrowed_str<E>(self, v: &'de str) -> Result<Self::Value, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        $Self::try_from(v).map_err(|_| {
-                            serde::de::Error::invalid_value(serde::de::Unexpected::Str(v), &"1.0")
-                        })
-                    }
-
                     fn visit_str<E>(self, s: &str) -> Result<Self::Value, E>
                     where
                         E: serde::de::Error,
                     {
-                        self.visit_borrowed_str(s)
-                    }
-
-                    fn visit_string<E>(self, s: String) -> Result<Self::Value, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        self.visit_borrowed_str(s.as_str())
+                        $Self::try_from(s).map_err(|_| {
+                            serde::de::Error::invalid_value(serde::de::Unexpected::Str(s), &"1.0")
+                        })
                     }
 
                     fn visit_f64<E>(self, v: f64) -> Result<Self::Value, E>
@@ -525,13 +511,6 @@ macro_rules! de_serde {
                         E: serde::de::Error,
                     {
                         Ok($Self(v as $typ))
-                    }
-
-                    fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
-                    where
-                        D: Deserializer<'de>,
-                    {
-                        deserializer.deserialize_any(MythVisitor)
                     }
 
                     fn visit_newtype_struct<D>(
