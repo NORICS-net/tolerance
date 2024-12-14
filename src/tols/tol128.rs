@@ -307,30 +307,16 @@ mod should {
                 r#"{"width":"123.4 +/-0.5","length":null}"#,
                 serde_json::to_string(&t).unwrap()
             );
-
-            #[derive(Serialize, Deserialize, PartialEq, Debug)]
-            struct T3 {
-                width: Option<T128>,
-            }
-            let t = T3 { width: None };
-            assert_eq!(r#"{"width":null}"#, serde_json::to_string(&t).unwrap());
-            assert_eq!(serde_json::from_str::<T3>(r#"{"width":null}"#).unwrap(), t);
-            assert_eq!(
-                serde_json::from_str::<T3>(r#"{"width": "123.34 0.4 -0.2"}"#).unwrap(),
-                T3 {
-                    width: Some(T128::new(123.34, 0.4, -0.2))
-                }
-            );
         }
 
         #[test]
         fn serialize_to_float_struct() {
             #[derive(Serialize)]
-            struct T2 {
-                #[serde(serialize_with = "into_float_struct")]
+            struct T1 {
+                #[serde(serialize_with = "T128::into_float_struct")]
                 width: T128,
             }
-            let t = T2 {
+            let t = T1 {
                 width: T128::from(123455),
             };
             assert_eq!(
@@ -342,17 +328,46 @@ mod should {
         #[test]
         fn serialize_to_float_seq() {
             #[derive(Serialize)]
-            struct T2 {
-                #[serde(serialize_with = "into_to_float_seq")]
+            struct T1 {
+                #[serde(serialize_with = "T128::into_float_seq")]
                 width: T128,
             }
-            let t = T2 {
+            let t = T1 {
                 width: T128::from(123455),
             };
             assert_eq!(
                 r#"{"width":[12.3455,0.0,0.0]}"#,
                 serde_json::to_string(&t).unwrap()
             );
+
+            #[derive(Serialize, Deserialize, Debug, PartialEq)]
+            struct T2 {
+                #[serde(serialize_with = "T128::option_into_float_seq")]
+                width: Option<T128>,
+            }
+            let t = T2 {
+                width: Some(T128::from(123455)),
+            };
+            assert_eq!(
+                r#"{"width":[12.3455,0.0,0.0]}"#,
+                serde_json::to_string(&t).unwrap()
+            );
+            assert_tokens(
+                &t,
+                &[
+                    Token::Struct { name: "T2", len: 1 },
+                    Token::Str("width"),
+                    Token::Some,
+                    Token::Seq { len: Some(3) },
+                    Token::F64(12.3455),
+                    Token::F64(0.0),
+                    Token::F64(0.0),
+                    Token::SeqEnd,
+                    Token::StructEnd,
+                ],
+            );
+            let t = T2 { width: None };
+            assert_eq!(r#"{"width":null}"#, serde_json::to_string(&t).unwrap());
         }
 
         #[test]
@@ -425,8 +440,9 @@ mod should {
             );
             // defaults
             assert_de_tokens(
-                &tol,
+                &Some(tol),
                 &[
+                    Token::Some,
                     Token::Struct {
                         name: "T128",
                         len: 1,
@@ -475,7 +491,7 @@ mod should {
 
             #[derive(Serialize, Deserialize, PartialEq, Debug)]
             struct T3 {
-                #[serde(deserialize_with = "empty_to_zero_t128")]
+                #[serde(deserialize_with = "T128::empty_to_zero")]
                 width: Option<T128>,
             }
             let t = T3 { width: None };

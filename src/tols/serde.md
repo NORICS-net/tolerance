@@ -27,13 +27,17 @@ struct Part {
 ```
 Available serializers:
 * `into_string`: serialize into string-field like the [`to_string()`-method](fn.into_string.html).
-* `into_float_struct`: serialize into a [struct like the default-serializer](fn.into_float_struct.html) but with float-fields.
-* `into_float_seq`: serialize into an [array of 3 float-fields](fn.into_float_seq.html).
+* `into_float_struct`: serialize into a [struct like the default-serializer](#method.into_float_struct) but with float-fields.
+* `into_float_seq`: serialize into an [array of 3 float-fields](#method.into_float_seq).
 
 #### Deserialization
 
 While deserializing ommiting `minus` is interpreted as `-plus`. Ommitting `plus`- and `minus`-parts defaulting to ZERO.
 The properties can be abbreviated to `v`, `p` and `m`. A JSON of `"width":{"v":10000}` would be valid.
+
+Beside the standard deserializer some special-deserializer are offered.
+* [interpreting an empty-string as `Self::ZERO`](#method.empty_to_zero)
+* [interpreting an empty-string as `None`](#method.empty_to_none)
 
 ```rust
 # use tolerance::T128;
