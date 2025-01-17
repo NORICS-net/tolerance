@@ -2,11 +2,12 @@ use std::convert::Infallible;
 use std::fmt::{Display, Formatter};
 use std::num::{ParseFloatError, TryFromIntError};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum ToleranceError {
     ParseError(String),
     Overflow(String),
     ParseEmptyStr(&'static str),
+    ValidationError(String),
 }
 
 impl std::error::Error for ToleranceError {}
@@ -36,6 +37,7 @@ impl Display for ToleranceError {
         let text = match self {
             ParseError(text) | Overflow(text) => text.as_str(),
             ParseEmptyStr(type_r) => &format!("Cannot parse an empty string into {type_r}."),
+            ValidationError(text) => text.as_str(),
         };
         write!(f, "{text}")
     }
@@ -44,7 +46,7 @@ impl Display for ToleranceError {
 impl ToleranceError {
     /// Helper-method to create a `ParseError`.
     #[inline]
-    pub fn parse_err<R>(text: impl Into<String>) -> Result<R, ToleranceError> {
+    pub fn parse_err<R>(text: impl Into<String>) -> Result<R, Self> {
         Err(Self::ParseError(text.into()))
     }
 }

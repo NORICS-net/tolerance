@@ -1,5 +1,5 @@
-pub(crate) mod tol128;
-pub(crate) mod tol64;
+pub mod tol128;
+pub mod tol64;
 
 macro_rules! multiply_tolerance {
     ($Self:ident, $($typ:ty),+) => {
@@ -32,25 +32,30 @@ macro_rules! tolerance_body {
                 minus: $tol::ZERO,
             };
 
-            ///
-            #[doc = concat!("Creates a `", stringify!($Self), "` with asymmetrical tolerance.")]
-            ///
-            /// Provided parameters as `f64` are interpreted as `mm`-values.
-            ///
+            #[doc = concat!("Creates a `", stringify!($Self), "` with (perhaps) asymmetrical tolerance")]
+            /// without checking it's validity.
             #[inline]
             pub fn new(
                 value: impl Into<$value>,
                 plus: impl Into<$tol>,
                 minus: impl Into<$tol>,
             ) -> Self {
-                let plus = plus.into();
-                let minus = minus.into();
-                assert!(plus >= minus, "Plus has to be bigger than minus.");
                 Self {
                     value: value.into(),
-                    plus,
-                    minus,
+                    plus: plus.into(),
+                    minus: minus.into(),
                 }
+            }
+
+            /// Checks that the `minus`-part is smaller than the `plus`-part.
+            pub fn validate(self) -> Result<Self, error::ToleranceError> {
+                 if self.plus < self.minus {
+                     Err(error::ToleranceError::ValidationError(
+                         format!("Invalid Tolerance: Minus can't be smaller than plus. ({self})")
+                     ))
+                 } else {
+                     Ok(self)
+                 }
             }
 
             #[doc = concat!("Creates a `", stringify!($Self), "` with symmetrical tolerance.")]
@@ -385,9 +390,9 @@ macro_rules! tolerance_body {
                 match self.value.cmp(&other.value) {
                     Ordering::Equal => match self.minus.cmp(&other.minus) {
                         Ordering::Equal => self.plus.cmp(&other.plus),
-                        x => x,
+                        order => order,
                     },
-                    x => x,
+                    order => order,
                 }
             }
         }
@@ -430,7 +435,7 @@ macro_rules! tolerance_body {
 
         impl Debug for $Self {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                let $Self{value, plus, minus} = self;
+                let Self{value, plus, minus} = self;
                 if let Some(t) = f.precision() {
                     write!(f, "{}({value:.t$} {plus:+.t$} {minus:+.t$})", stringify!($Self))
                 } else {
@@ -498,22 +503,21 @@ macro_rules! tolerance_body {
 
             fn try_from(triple: (Option<V>, Option<P>, Option<M>)) -> Result<Self, Self::Error> {
                 match triple {
-
                     (Some(v), Some(p), Some(m)) => {
                         let value = v.try_into()?;
-                        Ok(Self {
+                        Self {
                             value,
                             plus: p.try_into()?,
                             minus: m.try_into()?,
-                        })
+                        }.validate()
                     }
                     (Some(v), Some(p), None) => {
                         let p: $tol = p.try_into()?;
-                        Ok(Self {
+                        Self {
                             value: v.try_into()?,
                             plus: p,
                             minus: -p,
-                        })
+                        }.validate()
                     },
                     (Some(v), None, None) => Ok(Self {
                         value: v.try_into()?,
@@ -581,8 +585,8 @@ macro_rules! tolerance_body {
 
             fn try_from(triple: (Option<&i32>, Option<&i32>, Option<&i32>)) -> Result<Self, Self::Error> {
                 match triple {
-                    (Some(&v), Some(&p), Some(&m)) => Ok($Self::new(v, p, m)),
-                    (Some(&v), Some(&p), None) => Ok($Self::new(v, p, -p)),
+                    (Some(&v), Some(&p), Some(&m)) => $Self::new(v, p, m).validate(),
+                    (Some(&v), Some(&p), None) => $Self::new(v, p, -p).validate(),
                     (Some(&v), None, None) => Ok($Self::new(v, 0, 0)),
                     _ => Err(ParseError(format!("{} not parsable from '{triple:?}'!", stringify!($Self)))),
                 }
@@ -594,18 +598,18 @@ macro_rules! tolerance_body {
 
             fn try_from(triple: (Option<&i64>, Option<&i64>, Option<&i64>)) -> Result<Self, Self::Error> {
                 match triple {
-                    (Some(&v), Some(&p), Some(&m)) => Ok(Self {
+                    (Some(&v), Some(&p), Some(&m)) => Self {
                         value: $value::try_from(v)?,
                         plus: $tol::try_from(p)?,
                         minus: $tol::try_from(m)?,
-                    }),
+                    }.validate(),
                     (Some(&v), Some(&p), None) => {
                         let p = $tol::try_from(p)?;
-                        Ok(Self {
+                        Self {
                             value: $value::try_from(v)?,
                             plus: p,
                             minus: -p,
-                        })
+                        }.validate()
                     }
                     (Some(&v), None, None) => Ok(Self {
                         value: $value::try_from(v)?,
@@ -789,9 +793,9 @@ macro_rules! de_serde_tol {
                                 .ok_or_else(|| serde::de::Error::invalid_length(0, &self))?;
                             let plus : $Tol = seq.next_element()?.unwrap_or($Tol::ZERO);
                             let minus : $Tol = seq.next_element()?.unwrap_or(plus.neg());
-                            Ok($Self {
+                            $Self {
                                 value, plus, minus
-                            })
+                            }.validate().map_err(|t| serde::de::Error::custom(t.to_string()))
                         }
 
                     fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
@@ -827,9 +831,9 @@ macro_rules! de_serde_tol {
                         let value : $Val = value.ok_or_else(|| serde::de::Error::missing_field("value"))?;
                         let plus : $Tol = plus.unwrap_or($Tol::ZERO);
                         let minus : $Tol = minus.unwrap_or(plus.neg());
-                        Ok($Self {
+                        $Self {
                             value, plus, minus
-                        })
+                        }.validate().map_err(|t| serde::de::Error::custom(t.to_string()))
                     }
 
                     fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>

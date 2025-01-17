@@ -11,31 +11,31 @@ pub struct Unit(i64);
 
 impl Unit {
     /// My-meter `μ` the equivalent to `potency(1)`.
-    pub const MY: Unit = Unit(10);
+    pub const MY: Self = Self(10);
 
     /// Millimeter `1 mm = 1000 μ` the equivalent to `potency(4)`.
-    pub const MM: Unit = Unit(1_000 * Unit::MY.0);
+    pub const MM: Self = Self(1_000 * Self::MY.0);
 
     /// Centimeter `1 cm = 10 mm = 10_000 μ` the equivalent to `potency(5)`.
-    pub const CM: Unit = Unit(10 * Unit::MM.0);
+    pub const CM: Self = Self(10 * Self::MM.0);
 
     /// Inch `1 in = 25.4 mm = 25_400 μ`.
-    pub const INCH: Unit = Unit(25_400 * Unit::MY.0);
+    pub const INCH: Self = Self(25_400 * Self::MY.0);
 
     /// Foot `1 ft = 12 in = 304.8 mm = 304_800 μ`.
-    pub const FT: Unit = Unit(12 * Unit::INCH.0);
+    pub const FT: Self = Self(12 * Self::INCH.0);
 
     /// Yard `1 yd = 3 ft = 914.4 mm = 914_400 μ`.
-    pub const YD: Unit = Unit(3 * Unit::FT.0);
+    pub const YD: Self = Self(3 * Self::FT.0);
 
     /// Meter `100 cm = 1_000 mm = 1_000_000 μ` the equivalent to `potency(7)`.
-    pub const METER: Unit = Unit(1_000 * Unit::MM.0);
+    pub const METER: Self = Self(1_000 * Self::MM.0);
 
     /// Kilometer `1 km = 1_000 m` the equivalent to `potency(10)`.
-    pub const KM: Unit = Unit(1_000 * Unit::METER.0);
+    pub const KM: Self = Self(1_000 * Self::METER.0);
 
     /// Mile `1 mi = 1760 yd = 1609.344 m = 1_609_344_000 μ`.
-    pub const MILE: Unit = Unit(1760 * Unit::YD.0);
+    pub const MILE: Self = Self(1760 * Self::YD.0);
 }
 
 impl Unit {
@@ -47,8 +47,8 @@ impl Unit {
 
     /// ten to the power of `p`. `10^p`
     #[must_use]
-    pub fn potency(p: usize) -> Unit {
-        Unit((0..p).fold(1i64, |acc, _| acc * 10))
+    pub fn potency(p: usize) -> Self {
+        Self((0..p).fold(1i64, |acc, _| acc * 10))
     }
 }
 

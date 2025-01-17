@@ -1,6 +1,6 @@
-pub(crate) mod myth16;
-pub(crate) mod myth32;
-pub(crate) mod myth64;
+pub mod myth16;
+pub mod myth32;
+pub mod myth64;
 
 macro_rules! from_number {
     ($Self:ident, $($Target:ident),+) => {
@@ -245,39 +245,39 @@ macro_rules! standard_myths {
             #[doc = concat!("Returns the memory representation of this ", stringify!($Self), " as a byte array in")]
             /// big-endian (network) byte order.
             #[must_use]
-            pub fn to_be_bytes(&self) -> [u8; std::mem::size_of::<$typ>()] {
+            pub const fn to_be_bytes(&self) -> [u8; std::mem::size_of::<$typ>()] {
                 $typ::to_be_bytes(self.0)
             }
 
             #[doc = concat!("Returns the memory representation of this ", stringify!($Self), " as a byte array in")]
             /// little-endian byte order.
             #[must_use]
-            pub fn to_le_bytes(&self) -> [u8; std::mem::size_of::<$typ>()] {
+            pub const fn to_le_bytes(&self) -> [u8; std::mem::size_of::<$typ>()] {
                 $typ::to_le_bytes(self.0)
             }
 
             #[doc = concat!("Returns the memory representation of this ", stringify!($Self), " as a byte array in")]
             /// native byte order.
             #[must_use]
-            pub fn to_ne_bytes(&self) -> [u8; std::mem::size_of::<$typ>()] {
+            pub const fn to_ne_bytes(&self) -> [u8; std::mem::size_of::<$typ>()] {
                 $typ::to_ne_bytes(self.0)
             }
 
             #[doc = concat!("Creates a ", stringify!($Self), " value from its representation")]
             /// as a byte array in big-endian.
-            pub fn from_be_bytes(bytes: [u8; std::mem::size_of::<$typ>()]) -> Self {
+            pub const fn from_be_bytes(bytes: [u8; std::mem::size_of::<$typ>()]) -> Self {
                 Self($typ::from_be_bytes(bytes))
             }
 
             #[doc = concat!("Creates a ", stringify!($Self), " value from its representation")]
             /// as a byte array in little endian.
-            pub fn from_le_bytes(bytes: [u8; std::mem::size_of::<$typ>()]) -> Self {
+            pub const fn from_le_bytes(bytes: [u8; std::mem::size_of::<$typ>()]) -> Self {
                 Self($typ::from_le_bytes(bytes))
             }
 
             #[doc = concat!("Creates a ", stringify!($Self), " value from its representation")]
             /// as a byte array in native byte order.
-            pub fn from_ne_bytes(bytes: [u8; std::mem::size_of::<$typ>()]) -> Self {
+            pub const fn from_ne_bytes(bytes: [u8; std::mem::size_of::<$typ>()]) -> Self {
                 Self($typ::from_ne_bytes(bytes))
             }
 

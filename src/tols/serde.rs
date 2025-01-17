@@ -49,7 +49,7 @@ where
             None => serializer.serialize_none(),
         }
     } else {
-        serializer.serialize_some(&t.ser_as_string().unwrap().to_string())
+        serializer.serialize_some(&t.ser_as_string().unwrap())
     }
 }
 
